@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Josefin_Sans } from "next/font/google";
 import "./globals.css";
+import { Navigation } from "@/components/Navigation";
 
-const josefinSans = Josefin_Sans({ subsets: ["latin"] });
+const josefinSans = Josefin_Sans({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: "bilo.app - AI Invoicing Company",
@@ -31,7 +32,10 @@ export default function RootLayout({
         <link rel="icon" href="/logo.png" type="image/png" />
         <link rel="apple-touch-icon" href="/logo.png" />
       </head>
-      <body className={josefinSans.className}>{children}</body>
+      <body className={josefinSans.className}>
+        <Navigation />
+        {children}
+      </body>
     </html>
   );
 }
