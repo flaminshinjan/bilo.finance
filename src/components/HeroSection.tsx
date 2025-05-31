@@ -12,7 +12,7 @@ export const HeroSection = () => {
         
       </div>
       <div className="hero-image-container w-full max-w-[605px]">
-        <div className="relative w-full h-[250px] sm:h-[300px] md:h-[350px] lg:h-[400px] rounded-[20px] overflow-hidden hero-image-wrapper">
+        <div className="relative w-full h-[250px] sm:h-[300px] md:h-[351px] lg:h-[400px] rounded-[20px] overflow-hidden hero-image-wrapper">
           <Image
             src="/hero-image.png"
             alt="Team collaboration illustration"
