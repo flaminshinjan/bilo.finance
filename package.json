@@ -21,10 +21,7 @@
     "autoprefixer": "10.4.19",
     "postcss": "8.4.38",
     "tailwindcss": "3.4.1",
-    "@eslint/config-array": "^1.0.4",
-    "@eslint/object-schema": "^1.0.2",
     "eslint": "8.56.0",
     "eslint-config-next": "14.1.0"
-  },
-  "packageManager": "yarn@1.22.19"
+  }
 }
