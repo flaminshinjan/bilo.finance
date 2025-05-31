@@ -9,14 +9,8 @@ export const metadata: Metadata = {
   title: "bilo.app - AI Invoicing Company",
   description: "The First AI Invoicing Company",
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/logo.png", type: "image/png" }
-    ],
-    apple: [
-      { url: "/logo.png", sizes: "180x180", type: "image/png" }
-    ],
-    shortcut: ["/favicon.ico"]
+    icon: "/favicon.ico",
+    apple: "/logo.png",
   },
 };
 
@@ -27,11 +21,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/logo.png" />
-      </head>
       <body className={josefinSans.className}>
         <Navigation />
         {children}
