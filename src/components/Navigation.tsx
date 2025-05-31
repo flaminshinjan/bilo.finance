@@ -18,7 +18,7 @@ export const Navigation = () => {
             height={48}
           />
           <div className="hidden sm:block absolute -top-1 -right-16 px-2 py-0.5 rounded-full border border-[#FBB03B] text-[#FBB03B] text-[10px] whitespace-nowrap">
-            we're hiring !
+            we&apos;re hiring !
           </div>
         </div>
         
@@ -53,7 +53,7 @@ export const Navigation = () => {
         {isMenuOpen && (
           <div className="absolute top-[72px] left-0 right-0 bg-white shadow-lg p-4 flex flex-col items-center gap-4 md:hidden">
             <div className="sm:hidden px-2 py-0.5 rounded-full border border-[#FBB03B] text-[#FBB03B] text-[10px]">
-              we're hiring !
+              we&apos;re hiring !
             </div>
             <Link href="/" className="nav-link active">
               Home
