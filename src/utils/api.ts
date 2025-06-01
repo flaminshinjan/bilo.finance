@@ -1,10 +1,13 @@
 import { supabase } from './supabase'
 
 export async function uploadInvoice(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
   const { data: functionData, error: functionError } = await supabase.functions.invoke(
     'process-invoice',
     {
-      body: new FormData().append('file', file)
+      body: formData
     }
   )
 
