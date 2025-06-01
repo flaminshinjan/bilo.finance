@@ -3,14 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #FBB03B;
-  --text-color: #000000;
-  --background-color: #FFFFFF;
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+[data-theme='dark'] {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 0, 0, 0;
 }
 
 body {
-  color: var(--text-color);
-  background: var(--background-color);
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
 }
 
 .btn-primary {
