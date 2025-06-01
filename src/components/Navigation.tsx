@@ -34,11 +34,11 @@ export function Navigation() {
       <div className="max-w-[1200px] mx-auto flex items-center">
         <div className="flex items-center relative w-[120px]">
           <Link href="/">
-            <Image
-              src="/bilo-logo.png"
-              alt="Bilo Logo"
-              width={120}
-              height={48}
+        <Image
+          src="/bilo-logo.png"
+          alt="Bilo Logo"
+          width={120}
+          height={48}
             />
           </Link>
           <div className="hidden sm:block absolute -top-1 -right-16 px-2 py-0.5 rounded-full border border-[#FBB03B] text-[#FBB03B] text-[10px] whitespace-nowrap">
@@ -77,34 +77,34 @@ export function Navigation() {
           <div className="absolute top-[72px] left-0 right-0 bg-white shadow-lg p-4 flex flex-col items-center gap-4 md:hidden z-50">
             <div className="sm:hidden px-2 py-0.5 rounded-full border border-[#FBB03B] text-[#FBB03B] text-[10px]">
               we&apos;re hiring !
-            </div>
+      </div>
             <Link 
               href="/" 
               className={`nav-link relative py-2 ${pathname === '/' ? 'text-primary' : 'text-gray-600'}`}
               onClick={() => setIsMenuOpen(false)}
             >
-              Home
+          Home
               {pathname === '/' && (
                 <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
               )}
-            </Link>
+        </Link>
             <Link 
               href="/about" 
               className={`nav-link relative py-2 ${pathname === '/about' ? 'text-primary' : 'text-gray-600'}`}
               onClick={() => setIsMenuOpen(false)}
             >
-              About Us
+          About Us
               {pathname === '/about' && (
                 <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
               )}
-            </Link>
+        </Link>
             <Link 
               href="/auth/login" 
               className="bg-primary text-black px-6 py-2 rounded-full hover:bg-primary/80 transition-colors w-full text-center"
               onClick={() => setIsMenuOpen(false)}
             >
               Try Now
-            </Link>
+        </Link>
           </div>
         )}
       </div>
