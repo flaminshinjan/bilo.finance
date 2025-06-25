@@ -9,12 +9,24 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
+    "@heroicons/react": "^2.2.0",
+    "@mastra/core": "^0.10.7",
+    "@mastra/libsql": "^0.11.0",
+    "@mastra/loggers": "^0.10.2",
+    "@mastra/memory": "^0.11.0",
     "@supabase/supabase-js": "^2.49.8",
-    "next": "14.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "multer": "^2.0.1",
+    "next": "^15.3.4",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.3.31",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "react-dropzone": "^14.3.8",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "sharp": "^0.34.2",
+    "tesseract.js": "^6.0.1",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/node": "20.11.24",
@@ -23,6 +35,7 @@
     "autoprefixer": "^10.4.14",
     "eslint": "8.56.0",
     "eslint-config-next": "14.1.0",
+    "ignore-loader": "^0.1.2",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.0",
     "typescript": "5.3.3"

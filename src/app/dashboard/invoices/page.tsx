@@ -1,153 +1,285 @@
 'use client';
 
-import { useState } from 'react';
-import { FiDownload, FiEye, FiTrash2, FiSearch, FiFilter } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiDownload, FiEye, FiTrash2, FiSearch, FiFilter, FiRefreshCw, FiFileText, FiCalendar } from 'react-icons/fi';
 
 interface Invoice {
   id: string;
-  date: string;
-  company: string;
+  invoice_number: string;
+  vendor_name: string;
+  vendor_address?: string;
   amount: number;
-  status: 'processed' | 'pending' | 'error';
-  invoiceNo: string;
+  currency: string;
+  invoice_date: string;
+  due_date?: string;
+  status: string;
+  extracted_data?: any;
+  created_at: string;
+  created_by: string;
 }
 
 export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Placeholder data - replace with actual API call
-  const invoices: Invoice[] = [
-    {
-      id: '1',
-      date: '2024-02-20',
-      company: 'Tech Corp',
-      amount: 1500,
-      status: 'processed',
-      invoiceNo: 'INV-2024-001'
-    },
-    {
-      id: '2',
-      date: '2024-02-19',
-      company: 'Design Studio',
-      amount: 2300,
-      status: 'pending',
-      invoiceNo: 'INV-2024-002'
-    },
-    {
-      id: '3',
-      date: '2024-02-18',
-      company: 'Marketing Inc',
-      amount: 3400,
-      status: 'error',
-      invoiceNo: 'INV-2024-003'
-    },
-  ];
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/invoices');
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch invoices');
+      }
+      
+      setInvoices(data.invoices);
+      console.log(`✅ Loaded ${data.invoices.length} invoices`);
+    } catch (err) {
+      console.error('❌ Error fetching invoices:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch invoices');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'processed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'error':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+        return 'bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20';
+      case 'approved':
+        return 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20';
+      case 'rejected':
+        return 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20';
+      case 'paid':
+        return 'bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+        return 'bg-[#6B7280]/10 text-[#6B7280] border border-[#6B7280]/20';
     }
   };
 
   const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = invoice.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         invoice.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = invoice.vendor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filter === 'all' || invoice.status === filter;
     return matchesSearch && matchesFilter;
   });
 
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#1F2937] dark:text-white">Invoices</h1>
+            <p className="text-[#6B7280] dark:text-[#9CA3AF] mt-1">
+              Manage and track all your invoices
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#8B5CF6] border-t-transparent"></div>
+            <span className="text-[#6B7280] dark:text-[#9CA3AF]">Loading invoices...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#1F2937] dark:text-white">Invoices</h1>
+            <p className="text-[#6B7280] dark:text-[#9CA3AF] mt-1">
+              Manage and track all your invoices
+            </p>
+          </div>
+          <button
+            onClick={fetchInvoices}
+            className="inline-flex items-center px-6 py-3 bg-[#8B5CF6] text-white font-medium rounded-xl hover:bg-[#7C3AED] transition-colors duration-200"
+          >
+            <FiRefreshCw className="mr-2 h-4 w-4" />
+            Retry
+          </button>
+        </div>
+        <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-2xl p-8 text-center">
+          <div className="bg-[#EF4444]/10 rounded-xl p-3 w-fit mx-auto mb-4">
+            <FiFileText className="w-8 h-8 text-[#EF4444]" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#1F2937] dark:text-white mb-2">
+            Error Loading Invoices
+          </h3>
+          <p className="text-[#EF4444] mb-6">{error}</p>
+          <button
+            onClick={fetchInvoices}
+            className="inline-flex items-center px-6 py-3 bg-[#8B5CF6] text-white font-medium rounded-xl hover:bg-[#7C3AED] transition-colors duration-200"
+          >
+            <FiRefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Invoices</h1>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-[#1F2937] dark:text-white">
+            Invoices
+          </h1>
+          <p className="text-[#6B7280] dark:text-[#9CA3AF] mt-1">
+            {invoices.length > 0 ? `${invoices.length} total invoices` : 'No invoices found'}
+          </p>
+        </div>
+        <button
+          onClick={fetchInvoices}
+          className="inline-flex items-center px-6 py-3 bg-[#8B5CF6] text-white font-medium rounded-xl hover:bg-[#7C3AED] transition-colors duration-200 shadow-lg hover:shadow-xl"
+        >
+          <FiRefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </button>
       </div>
 
       {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search invoices..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <FiFilter className="text-gray-400" />
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2 px-4 focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="processed">Processed</option>
-            <option value="pending">Pending</option>
-            <option value="error">Error</option>
-          </select>
+      <div className="bg-white dark:bg-[#1A1A2E] rounded-2xl border border-[#E5E7EB] dark:border-[#374151] p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-[#9CA3AF]" />
+            <input
+              type="text"
+              placeholder="Search by invoice number or vendor name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-[#E5E7EB] dark:border-[#374151] bg-[#F8F9FA] dark:bg-[#374151] text-[#1F2937] dark:text-white placeholder-[#6B7280] dark:placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#8B5CF6] focus:border-[#8B5CF6] transition-colors duration-200"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="bg-[#8B5CF6]/10 rounded-xl p-2">
+              <FiFilter className="text-[#8B5CF6] w-5 h-5" />
+            </div>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="rounded-xl border border-[#E5E7EB] dark:border-[#374151] bg-[#F8F9FA] dark:bg-[#374151] text-[#1F2937] dark:text-white py-3 px-4 focus:ring-2 focus:ring-[#8B5CF6] focus:border-[#8B5CF6] transition-colors duration-200"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Invoices Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-gray-800/50 border-y dark:border-gray-700">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice No</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Company</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y dark:divide-gray-700">
+      {/* Invoices Content */}
+      {filteredInvoices.length === 0 ? (
+        <div className="bg-white dark:bg-[#1A1A2E] rounded-2xl border border-[#E5E7EB] dark:border-[#374151] p-12 text-center">
+          <div className="bg-[#8B5CF6]/10 rounded-xl p-4 w-fit mx-auto mb-6">
+            <FiFileText className="w-12 h-12 text-[#8B5CF6]" />
+          </div>
+          <h3 className="text-xl font-semibold text-[#1F2937] dark:text-white mb-2">
+            {invoices.length === 0 ? 'No invoices uploaded yet' : 'No invoices match your search'}
+          </h3>
+          <p className="text-[#6B7280] dark:text-[#9CA3AF] mb-6">
+            {invoices.length === 0 
+              ? 'Get started by uploading your first invoice' 
+              : 'Try adjusting your search terms or filters'}
+          </p>
+          {invoices.length === 0 && (
+            <a
+              href="/dashboard/upload"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] text-white font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              Upload Your First Invoice
+            </a>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-[#1A1A2E] rounded-2xl border border-[#E5E7EB] dark:border-[#374151] overflow-hidden">
+          {/* Table Header */}
+          <div className="bg-[#1F2937] text-white">
+            <div className="grid grid-cols-6 gap-4 p-6">
+              <div className="font-semibold text-sm uppercase tracking-wider">Invoice No</div>
+              <div className="font-semibold text-sm uppercase tracking-wider">Vendor</div>
+              <div className="font-semibold text-sm uppercase tracking-wider">Amount</div>
+              <div className="font-semibold text-sm uppercase tracking-wider">Date</div>
+              <div className="font-semibold text-sm uppercase tracking-wider">Status</div>
+              <div className="font-semibold text-sm uppercase tracking-wider text-right">Actions</div>
+            </div>
+          </div>
+          
+          {/* Table Body */}
+          <div className="divide-y divide-[#E5E7EB] dark:divide-[#374151]">
             {filteredInvoices.map((invoice) => (
-              <tr key={invoice.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {invoice.invoiceNo}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {new Date(invoice.date).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {invoice.company}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  ${invoice.amount.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
-                    {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex items-center justify-end space-x-3">
-                    <button className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                      <FiEye className="w-5 h-5" />
-                    </button>
-                    <button className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                      <FiDownload className="w-5 h-5" />
-                    </button>
-                    <button className="text-red-400 hover:text-red-500">
-                      <FiTrash2 className="w-5 h-5" />
-                    </button>
+              <div key={invoice.id} className="grid grid-cols-6 gap-4 p-6 hover:bg-[#F8F9FA] dark:hover:bg-[#374151]/20 transition-colors duration-200">
+                <div className="flex items-center">
+                  <div className="bg-[#8B5CF6]/10 rounded-lg p-2 mr-3">
+                    <FiFileText className="w-4 h-4 text-[#8B5CF6]" />
                   </div>
-                </td>
-              </tr>
+                  <span className="font-medium text-[#1F2937] dark:text-white">
+                    {invoice.invoice_number}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <div>
+                    <div className="font-medium text-[#1F2937] dark:text-white">
+                      {invoice.vendor_name}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center">
+                  <span className="font-semibold text-[#1F2937] dark:text-white">
+                    {invoice.currency} {invoice.amount.toLocaleString()}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <div className="flex items-center text-[#6B7280] dark:text-[#9CA3AF]">
+                    <FiCalendar className="w-4 h-4 mr-2" />
+                    <span className="text-sm">
+                      {new Date(invoice.invoice_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(invoice.status)}`}>
+                    {invoice.status}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-end space-x-2">
+                  <button className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#8B5CF6] hover:bg-[#8B5CF6]/10 rounded-lg transition-colors duration-200">
+                    <FiEye className="w-4 h-4" />
+                  </button>
+                  <button className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#8B5CF6] hover:bg-[#8B5CF6]/10 rounded-lg transition-colors duration-200">
+                    <FiDownload className="w-4 h-4" />
+                  </button>
+                  <button className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors duration-200">
+                    <FiTrash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
