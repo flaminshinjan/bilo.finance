@@ -22,7 +22,7 @@ You are an expert AI agent specialized in processing invoices for the Bilo Finan
 **Output Requirements:**
 Provide structured, validated invoice data with confidence metrics and processing metadata for downstream approval workflows.
 `,
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-20250514'),
 });
 
  

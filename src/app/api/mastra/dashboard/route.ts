@@ -1,125 +1,194 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/utils/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📊 Getting dashboard data...');
+    console.log('Loading...');
 
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
-    }
-
-    console.log(`📊 Aggregating dashboard data for user: ${userId}`);
-
-    // Dynamic imports to avoid build issues
-    const [
-      { getDueInvoicesTool },
-      { getUserPendingApprovals }
-    ] = await Promise.all([
-      import('@/mastra/tools/supabase-operations'),
-      import('@/mastra/agents/approval-workflow-agent')
+    // Fetch comprehensive dashboard data in parallel
+    const [invoicesResult, reimbursementsResult, activityResult] = await Promise.allSettled([
+      // Get all invoices with stats
+      supabase
+        .from('invoices')
+        .select('id, amount, status, created_at, invoice_date, vendor_name, invoice_number')
+        .order('created_at', { ascending: false }),
+      
+      // Get all reimbursements with stats  
+      supabase
+        .from('reimbursements')
+        .select('id, reimbursement_amount, status, created_at, employee_name')
+        .order('created_at', { ascending: false }),
+      
+      // Get recent activity (last 10 invoices and reimbursements)
+      supabase
+        .from('invoices')
+        .select('id, invoice_number, vendor_name, status, created_at, amount')
+        .order('created_at', { ascending: false })
+        .limit(5)
     ]);
 
-    // Execute multiple agent operations in parallel for efficiency
-    const [dueInvoicesResult, pendingApprovalsResult] = await Promise.allSettled([
-      getDueInvoicesTool.execute({
-        userId,
-        daysAhead: 30,
-      }),
-      getUserPendingApprovals(userId, 10),
-    ]);
+    // Process invoices data
+    const invoicesData = invoicesResult.status === 'fulfilled' ? invoicesResult.value.data || [] : [];
+    const reimbursementsData = reimbursementsResult.status === 'fulfilled' ? reimbursementsResult.value.data || [] : [];
+    const recentInvoices = activityResult.status === 'fulfilled' ? activityResult.value.data || [] : [];
 
-    // Process due invoices result
-    const dueInvoices = dueInvoicesResult.status === 'fulfilled' 
-      ? dueInvoicesResult.value 
-      : { invoices: [], totalAmount: 0, count: 0 };
+    // Calculate invoice statistics
+    const totalInvoices = invoicesData.length;
+    const pendingInvoices = invoicesData.filter(inv => inv.status === 'pending').length;
+    const processedInvoices = invoicesData.filter(inv => inv.status === 'approved' || inv.status === 'paid').length;
+    const totalAmount = invoicesData.reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
-    // Process pending approvals result  
-    const pendingApprovals = pendingApprovalsResult.status === 'fulfilled'
-      ? pendingApprovalsResult.value
-      : { approvals: [], count: 0 };
+    // Calculate reimbursement statistics
+    const reimbursementsPending = reimbursementsData.filter(reimb => reimb.status === 'pending').length;
+    const reimbursementsProcessed = reimbursementsData.filter(reimb => reimb.status === 'approved' || reimb.status === 'paid').length;
 
-    // Calculate statistics
-    const statistics = {
-      totalDueInvoices: dueInvoices.count,
-      totalDueAmount: dueInvoices.totalAmount,
-      pendingApprovals: Array.isArray(pendingApprovals.approvals) ? pendingApprovals.approvals.length : pendingApprovals.count,
-      urgentItems: dueInvoices.invoices.filter((invoice: any) => invoice.days_until_due <= 7).length,
-    };
+    // Calculate monthly statistics (current month)
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const monthlyInvoices = invoicesData.filter(inv => {
+      const invDate = new Date(inv.created_at);
+      return invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear;
+    });
+    const monthlyAmount = monthlyInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
-    // Format urgent notifications
-    const notifications = [];
+    // Calculate success rate (approved vs total)
+    const successfulInvoices = invoicesData.filter(inv => inv.status === 'approved' || inv.status === 'paid').length;
+    const successRate = totalInvoices > 0 ? (successfulInvoices / totalInvoices * 100) : 100;
+
+    // Calculate average processing time (mock for now - would need more data tracking)
+    const avgProcessingTime = 2.1; // Hours
+
+    // Generate recent activity from actual data
+    const recentActivity = recentInvoices.map((invoice, index) => ({
+      id: index + 1,
+      type: 'invoice_uploaded',
+      title: 'Invoice Uploaded',
+      description: `Invoice ${invoice.invoice_number} from ${invoice.vendor_name}`,
+      timestamp: getRelativeTime(invoice.created_at),
+      status: invoice.status,
+      amount: invoice.amount
+    }));
+
+    // Add reimbursement activity
+    const recentReimbursements = reimbursementsData.slice(0, 3).map((reimb, index) => ({
+      id: recentActivity.length + index + 1,
+      type: 'reimbursement_processed',
+      title: 'Reimbursement Request',
+      description: `Reimbursement submitted by ${reimb.employee_name}`,
+      timestamp: getRelativeTime(reimb.created_at),
+      status: reimb.status,
+      amount: reimb.reimbursement_amount
+    }));
+
+    const allActivity = [...recentActivity, ...recentReimbursements]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5);
+
+    // Generate pending tasks based on actual data
+    const pendingTasks = [];
     
-    if (statistics.urgentItems > 0) {
-      notifications.push({
-        type: 'warning',
-        message: `${statistics.urgentItems} invoice(s) due within 7 days`,
+    if (pendingInvoices > 0) {
+      pendingTasks.push({
+        title: `Review ${pendingInvoices} pending invoice${pendingInvoices > 1 ? 's' : ''}`,
         priority: 'high',
+        time: '30m'
+      });
+    }
+    
+    if (reimbursementsPending > 0) {
+      pendingTasks.push({
+        title: `Process ${reimbursementsPending} reimbursement request${reimbursementsPending > 1 ? 's' : ''}`,
+        priority: 'medium',
+        time: '1h'
       });
     }
 
-    if (statistics.pendingApprovals > 0) {
-      notifications.push({
-        type: 'info',
-        message: `${statistics.pendingApprovals} approval(s) waiting for your review`,
-        priority: 'medium',
-      });
-    }
+    // Add some general tasks
+    pendingTasks.push(
+      { title: 'Generate monthly expense report', priority: 'low', time: '2h' },
+      { title: 'Update vendor database', priority: 'low', time: '1d' }
+    );
 
     const response = {
       success: true,
-      message: 'Dashboard data retrieved successfully',
       data: {
-        statistics,
-        dueInvoices: {
-          items: dueInvoices.invoices.slice(0, 5), // Top 5 most urgent
-          totalCount: dueInvoices.count,
-          totalAmount: dueInvoices.totalAmount,
+        statistics: {
+          totalInvoices,
+          pendingInvoices,
+          processedInvoices,
+          totalAmount,
+          reimbursementsPending,
+          reimbursementsProcessed,
+          monthlyInvoices: monthlyInvoices.length,
+          monthlyAmount,
+          avgProcessingTime,
+          successRate: Math.round(successRate * 10) / 10,
         },
-        pendingApprovals: {
-          items: Array.isArray(pendingApprovals.approvals) 
-            ? pendingApprovals.approvals.slice(0, 5) 
-            : [],
-          totalCount: Array.isArray(pendingApprovals.approvals) 
-            ? pendingApprovals.approvals.length 
-            : pendingApprovals.count,
-        },
-        notifications,
-        insights: [
-          dueInvoices.totalAmount > 50000 
-            ? `High payment volume: $${dueInvoices.totalAmount.toLocaleString()} due in next 30 days`
-            : `Manageable payment volume: $${dueInvoices.totalAmount.toLocaleString()} due in next 30 days`,
-          statistics.urgentItems > 0
-            ? `${statistics.urgentItems} urgent payment(s) require immediate attention`
-            : 'No urgent payments requiring immediate attention',
-          statistics.pendingApprovals > 3
-            ? `Approval backlog detected: ${statistics.pendingApprovals} items pending`
-            : 'Approval workflow running smoothly',
-        ],
+        recentActivity: allActivity,
+        pendingTasks: pendingTasks.slice(0, 5),
+        insights: generateInsights(totalInvoices, pendingInvoices, totalAmount, successRate)
       },
       timestamp: new Date().toISOString(),
     };
 
-    console.log(`✅ Dashboard data compiled: ${statistics.totalDueInvoices} due invoices, ${statistics.pendingApprovals} pending approvals`);
-
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('❌ Dashboard API error:', error);
+    console.error('Dashboard error:', error);
     
     return NextResponse.json(
       {
         success: false,
-        message: 'Failed to retrieve dashboard data',
+        message: 'Failed to load dashboard data',
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
   }
+}
+
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+  
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+  
+  return date.toLocaleDateString();
+}
+
+function generateInsights(totalInvoices: number, pendingInvoices: number, totalAmount: number, successRate: number): string[] {
+  const insights = [];
+  
+  if (totalAmount > 50000) {
+    insights.push(`High transaction volume: $${totalAmount.toLocaleString()} in total invoices`);
+  } else {
+    insights.push(`Current transaction volume: $${totalAmount.toLocaleString()}`);
+  }
+  
+  if (pendingInvoices > 5) {
+    insights.push(`${pendingInvoices} invoices need attention`);
+  } else if (pendingInvoices > 0) {
+    insights.push(`${pendingInvoices} pending invoice${pendingInvoices > 1 ? 's' : ''} to review`);
+  } else {
+    insights.push('All invoices are up to date');
+  }
+  
+  if (successRate > 95) {
+    insights.push('Processing efficiency is excellent');
+  } else if (successRate > 85) {
+    insights.push('Processing efficiency is good');
+  } else {
+    insights.push('Consider reviewing processing workflow');
+  }
+  
+  return insights;
 } 

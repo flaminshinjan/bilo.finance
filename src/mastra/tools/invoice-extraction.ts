@@ -25,7 +25,7 @@ const InvoiceDataSchema = z.object({
 
 export const extractInvoiceDataTool = new Tool({
   id: 'extract-invoice-data',
-  description: 'Extract structured data from invoice PDFs or images using OCR',
+  description: 'Extract structured data from invoice PDFs or images using advanced OCR and AI analysis',
   inputSchema: z.object({
     fileBuffer: z.instanceof(Buffer),
     fileName: z.string(),
@@ -37,8 +37,8 @@ export const extractInvoiceDataTool = new Tool({
     rawText: z.string(),
     method: z.enum(['pdf-text', 'ocr-image']),
   }),
-  execute: async ({ fileBuffer, fileName, mimeType }) => {
-    console.log(`🔍 Extracting data from ${fileName} (${mimeType}) using Claude 3.5 Sonnet`);
+  execute: async ({ context: { fileBuffer, fileName, mimeType } }) => {
+
     
     try {
       let rawText = '';
@@ -46,16 +46,46 @@ export const extractInvoiceDataTool = new Tool({
 
       if (mimeType === 'application/pdf') {
         console.log('📄 Processing PDF file...');
-        // For now, we'll use mock text extraction for PDFs
-        rawText = generateMockPDFText();
+        try {
+          // Try to extract text from PDF
+          const pdfParse = require('pdf-parse');
+          const pdfData = await pdfParse(fileBuffer);
+          rawText = pdfData.text;
         method = 'pdf-text';
+
+        } catch (pdfError) {
+          console.log('⚠️ PDF text extraction failed, falling back to OCR...');
+          // If PDF text extraction fails, treat as image for OCR
+          const base64Pdf = fileBuffer.toString('base64');
+          const pdfUrl = `data:${mimeType};base64,${base64Pdf}`;
+          
+          const { text } = await generateText({
+            model: anthropic('claude-3-5-sonnet-20241022'),
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: DETAILED_OCR_PROMPT
+                  },
+                  {
+                    type: 'image',
+                    image: pdfUrl
+                  }
+                ]
+              }
+            ],
+          });
+          
+          rawText = text;
+          method = 'ocr-image';
+        }
       } else if (mimeType.startsWith('image/')) {
         console.log('🖼️ Processing image file...');
-        // Convert image to base64 for Claude
         const base64Image = fileBuffer.toString('base64');
         const imageUrl = `data:${mimeType};base64,${base64Image}`;
         
-        // Use Claude 3.5 Sonnet to extract text from image
         const { text } = await generateText({
           model: anthropic('claude-3-5-sonnet-20241022'),
           messages: [
@@ -64,16 +94,7 @@ export const extractInvoiceDataTool = new Tool({
               content: [
                 {
                   type: 'text',
-                  text: `Please extract all text content from this invoice image. Focus on capturing:
-- Invoice number and dates
-- Vendor information (name, address, contact details)
-- Bill-to information
-- Line items with descriptions, quantities, and amounts
-- Totals, subtotals, and tax information
-- Payment terms
-- Any other relevant invoice details
-
-Return the raw text exactly as it appears on the invoice, maintaining the structure and formatting.`
+                  text: DETAILED_OCR_PROMPT
                 },
                 {
                   type: 'image',
@@ -90,41 +111,15 @@ Return the raw text exactly as it appears on the invoice, maintaining the struct
         throw new Error(`Unsupported file type: ${mimeType}`);
       }
 
-      console.log('📝 Extracted raw text:', rawText);
 
-      // Use Claude to parse the extracted text into structured data
+
+      // Use Claude to parse the extracted text into structured data with enhanced prompt
       const { text: structuredDataText } = await generateText({
         model: anthropic('claude-3-5-sonnet-20241022'),
         messages: [
           {
             role: 'user',
-            content: `Please analyze this invoice text and extract structured data. Return a JSON object with the following fields:
-
-{
-  "invoiceNumber": "string",
-  "vendorName": "string", 
-  "vendorAddress": "string",
-  "amount": number,
-  "currency": "string",
-  "invoiceDate": "YYYY-MM-DD",
-  "dueDate": "YYYY-MM-DD",
-  "lineItems": [
-    {
-      "description": "string",
-      "quantity": number,
-      "unitPrice": number,
-      "totalPrice": number
-    }
-  ],
-  "taxAmount": number,
-  "subtotal": number,
-  "paymentTerms": "string"
-}
-
-Invoice text:
-${rawText}
-
-Extract the exact values from the invoice. For dates, convert to YYYY-MM-DD format. For amounts, extract only the numeric value. Return only the JSON object, no additional text.`
+            content: ENHANCED_PARSING_PROMPT.replace('{{RAW_TEXT}}', rawText)
           }
         ],
       });
@@ -134,16 +129,23 @@ Extract the exact values from the invoice. For dates, convert to YYYY-MM-DD form
       // Parse the JSON response from Claude
       let extractedData;
       try {
-        extractedData = JSON.parse(structuredDataText);
+        // Clean the response in case it has markdown formatting
+        const cleanedResponse = structuredDataText.replace(/```json\n?|\n?```/g, '').trim();
+        extractedData = JSON.parse(cleanedResponse);
+        
+        // Validate and sanitize the extracted data
+        extractedData = validateAndSanitizeData(extractedData);
+        
       } catch (parseError) {
         console.error('❌ Failed to parse AI response as JSON:', parseError);
-        // Fallback to basic parsing
-        extractedData = parseInvoiceText(rawText, fileName);
+        console.log('Raw AI response:', structuredDataText);
+        // Enhanced fallback parsing
+        extractedData = enhancedParseInvoiceText(rawText, fileName);
       }
 
       const confidence = calculateConfidence(extractedData, rawText, method);
 
-      console.log(`✅ Data extraction completed with ${(confidence * 100).toFixed(1)}% confidence`);
+      
 
       return {
         extractedData,
@@ -158,99 +160,264 @@ Extract the exact values from the invoice. For dates, convert to YYYY-MM-DD form
   },
 });
 
-function generateMockOCRText(fileName: string): string {
-  // Generate realistic mock OCR text based on filename
-  const vendorName = fileName.replace(/[_-]/g, ' ').replace(/\.(pdf|png|jpg|jpeg)$/i, '').trim();
-  const invoiceNumber = `INV-${Math.floor(Math.random() * 100000)}`;
-  const amount = (Math.random() * 5000 + 100).toFixed(2);
-  const date = new Date().toLocaleDateString();
+const DETAILED_OCR_PROMPT = `Please extract ALL text content from this invoice document with extreme precision. Focus on capturing every piece of text exactly as it appears, including:
+
+**Header Information:**
+- Company/vendor name and full address
+- Invoice number (may be labeled as "Invoice #", "INV", "Invoice No.", etc.)
+- Invoice date and due date
+- Bill-to/Customer information
+
+**Financial Details:**
+- All line items with descriptions, quantities, unit prices, and totals
+- Subtotal, tax amounts, and final total
+- Currency symbols and amounts
+- Discount information if present
+
+**Additional Details:**
+- Payment terms (Net 30, Due on receipt, etc.)
+- Tax IDs, account numbers
+- Reference numbers, PO numbers
+- Contact information (phone, email, website)
+
+**Instructions:**
+1. Preserve the original structure and formatting
+2. Include ALL numbers exactly as shown (with currency symbols, commas, decimals)
+3. Capture complete addresses with line breaks
+4. Include any special characters, symbols, or formatting
+5. If text is unclear, note [UNCLEAR] but include your best interpretation
+
+Return the complete text content maintaining the document's logical structure.`;
+
+const ENHANCED_PARSING_PROMPT = `You are an expert invoice data extraction specialist. Analyze the following invoice text and extract structured data with maximum accuracy.
+
+**CRITICAL INSTRUCTIONS:**
+1. Extract data EXACTLY as it appears in the document
+2. For amounts: extract only the numerical value (remove currency symbols, commas)
+3. For dates: convert to YYYY-MM-DD format 
+4. For line items: capture ALL items, even if they span multiple lines
+5. Be extremely careful with decimal places and amounts
+6. If information is missing or unclear, use null for optional fields
+
+**INVOICE TEXT:**
+{{RAW_TEXT}}
+
+**REQUIRED OUTPUT FORMAT:**
+Return ONLY a valid JSON object with this exact structure:
+
+{
+  "invoiceNumber": "string (exact invoice number from document)",
+  "vendorName": "string (company/vendor name exactly as shown)",
+  "vendorAddress": "string (complete address or null if not found)",
+  "amount": number (final total amount as number only),
+  "currency": "string (currency code, default USD if not specified)",
+  "invoiceDate": "YYYY-MM-DD (invoice date)",
+  "dueDate": "YYYY-MM-DD or null (due date if present)",
+  "lineItems": [
+    {
+      "description": "string (item description)",
+      "quantity": number (quantity as number),
+      "unitPrice": number (unit price as number),
+      "totalPrice": number (line total as number)
+    }
+  ],
+  "taxAmount": number or null (tax amount if present),
+  "subtotal": number or null (subtotal before tax if present),
+  "paymentTerms": "string or null (payment terms if present)"
+}
+
+**VALIDATION RULES:**
+- All amounts must be numbers only (no currency symbols or commas)
+- Dates must be in YYYY-MM-DD format
+- Line items array must contain at least one item
+- Total amount should equal sum of line items plus tax
+- Invoice number should be the actual number from the document
+
+Extract data with precision and return ONLY the JSON object.`;
+
+function validateAndSanitizeData(data: any): z.infer<typeof InvoiceDataSchema> {
+  // Sanitize and validate extracted data
+  const sanitized = {
+    invoiceNumber: String(data.invoiceNumber || `INV-${Date.now()}`),
+    vendorName: String(data.vendorName || 'Unknown Vendor'),
+    vendorAddress: data.vendorAddress ? String(data.vendorAddress) : undefined,
+    amount: parseFloat(String(data.amount || 0)),
+    currency: String(data.currency || 'USD'),
+    invoiceDate: validateDate(data.invoiceDate) || new Date().toISOString().split('T')[0],
+    dueDate: data.dueDate ? (validateDate(data.dueDate) || undefined) : undefined,
+    lineItems: Array.isArray(data.lineItems) ? data.lineItems.map((item: any) => ({
+      description: String(item.description || 'Service/Product'),
+      quantity: parseFloat(String(item.quantity || 1)),
+      unitPrice: parseFloat(String(item.unitPrice || 0)),
+      totalPrice: parseFloat(String(item.totalPrice || 0)),
+    })) : [],
+    taxAmount: data.taxAmount ? parseFloat(String(data.taxAmount)) : undefined,
+    subtotal: data.subtotal ? parseFloat(String(data.subtotal)) : undefined,
+    paymentTerms: data.paymentTerms ? String(data.paymentTerms) : undefined,
+  };
+
+  // Ensure at least one line item exists
+  if (sanitized.lineItems.length === 0) {
+    sanitized.lineItems = [{
+      description: 'Service/Product',
+      quantity: 1,
+      unitPrice: sanitized.amount,
+      totalPrice: sanitized.amount,
+    }];
+  }
+
+  return sanitized;
+}
+
+function validateDate(dateStr: string): string | null {
+  if (!dateStr) return null;
   
-  return `
-    INVOICE
-    
-    ${vendorName}
-    123 Business Street
-    City, State 12345
-    
-    Invoice #: ${invoiceNumber}
-    Date: ${date}
-    Due Date: ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-    
-    Description                Qty    Unit Price    Total
-    Professional Services       1      $${amount}       $${amount}
-    
-    Subtotal: $${amount}
-    Tax: $${(parseFloat(amount) * 0.08).toFixed(2)}
-    Total: $${(parseFloat(amount) * 1.08).toFixed(2)}
-    
-    Payment Terms: Net 30
-  `;
+  try {
+    // Handle various date formats
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      // Try parsing common formats
+      const formats = [
+        /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/,  // MM/DD/YYYY or DD/MM/YYYY
+        /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/,    // YYYY/MM/DD
+      ];
+      
+      for (const format of formats) {
+        const match = dateStr.match(format);
+        if (match) {
+          const [, p1, p2, p3] = match;
+          let year, month, day;
+          
+          if (p1.length === 4) {
+            // YYYY/MM/DD format
+            [year, month, day] = [parseInt(p1), parseInt(p2), parseInt(p3)];
+          } else {
+            // MM/DD/YYYY or DD/MM/YYYY format
+            year = parseInt(p3);
+            if (year < 100) year += 2000; // Convert 2-digit year
+            
+            // Assume MM/DD/YYYY for US format
+            month = parseInt(p1);
+            day = parseInt(p2);
+          }
+          
+          const parsedDate = new Date(year, month - 1, day);
+          if (!isNaN(parsedDate.getTime())) {
+            return parsedDate.toISOString().split('T')[0];
+          }
+        }
+      }
+      return null;
+    }
+    return date.toISOString().split('T')[0];
+  } catch {
+    return null;
+  }
 }
 
-function generateMockPDFText(): string {
-  const amount = (Math.random() * 3000 + 500).toFixed(2);
-  return `
-    INVOICE
-    
-    Acme Corporation
-    456 Business Ave
-    Corporate City, ST 54321
-    
-    Invoice #: INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}
-    Date: ${new Date().toLocaleDateString()}
-    Due Date: ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-    
-    Description                    Qty    Unit Price    Total
-    Consulting Services             10     $${(parseFloat(amount) / 10).toFixed(2)}      $${amount}
-    Software License                1      $${(parseFloat(amount) * 0.3).toFixed(2)}      $${(parseFloat(amount) * 0.3).toFixed(2)}
-    
-    Subtotal: $${(parseFloat(amount) + parseFloat(amount) * 0.3).toFixed(2)}
-    Tax (8%): $${((parseFloat(amount) + parseFloat(amount) * 0.3) * 0.08).toFixed(2)}
-    Total: $${((parseFloat(amount) + parseFloat(amount) * 0.3) * 1.08).toFixed(2)}
-    
-    Payment Terms: Net 30
-    Please remit payment within 30 days
-  `;
-}
-
-function parseInvoiceText(rawText: string, fileName: string): z.infer<typeof InvoiceDataSchema> {
-  // Enhanced parsing logic with better pattern matching
+function enhancedParseInvoiceText(rawText: string, fileName: string): z.infer<typeof InvoiceDataSchema> {
   const lines = rawText.split('\n').map(line => line.trim()).filter(Boolean);
   
-  // Extract patterns with more sophisticated regex
-  const invoiceNumberMatch = rawText.match(/(?:invoice|inv)[#:\s]*([A-Z0-9\-]+)/i);
-  const amountMatches = rawText.match(/(?:total|amount|due)[:\s]*\$?([\d,]+\.?\d*)/gi);
-  const totalAmount = amountMatches ? amountMatches[amountMatches.length - 1].match(/\$?([\d,]+\.?\d*)/)?.[1] : null;
-  const dateMatch = rawText.match(/(?:date|dated)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
-  const dueDateMatch = rawText.match(/(?:due\s+date|due)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
+  // Enhanced pattern matching for better extraction
+  const invoiceNumberPatterns = [
+    /(?:invoice|inv|bill|receipt)[\s#:]*([A-Z0-9\-]+)/i,
+    /(?:number|no|#)[\s:]*([A-Z0-9\-]+)/i,
+    /([A-Z]{2,}\-\d+)/,
+  ];
   
-  // Better vendor name extraction
-  const vendorLines = lines.slice(0, 5);
+  const amountPatterns = [
+    /(?:total|amount\s+due|grand\s+total|balance\s+due)[\s:]*\$?([\d,]+\.?\d*)/i,
+    /\$?([\d,]+\.?\d*)\s*(?:total|due)/i,
+  ];
+  
+  const datePatterns = [
+    /(?:date|dated|issued)[\s:]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/,
+  ];
+  
+  const dueDatePatterns = [
+    /(?:due[\s\w]*date|payment[\s\w]*due)[\s:]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+  ];
+  
+  // Extract invoice number
+  let invoiceNumber = `INV-${Date.now()}`;
+  for (const pattern of invoiceNumberPatterns) {
+    const match = rawText.match(pattern);
+    if (match && match[1]) {
+      invoiceNumber = match[1];
+      break;
+    }
+  }
+
+  // Extract amount
+  let amount = 0;
+  for (const pattern of amountPatterns) {
+    const match = rawText.match(pattern);
+    if (match && match[1]) {
+      amount = parseFloat(match[1].replace(/,/g, ''));
+      break;
+    }
+  }
+
+  // Extract dates
+  let invoiceDate = new Date().toISOString().split('T')[0];
+  let dueDate: string | undefined;
+  
+  for (const pattern of datePatterns) {
+    const match = rawText.match(pattern);
+    if (match && match[1]) {
+      const validatedDate = validateDate(match[1]);
+      if (validatedDate) {
+        invoiceDate = validatedDate;
+        break;
+      }
+    }
+  }
+  
+  for (const pattern of dueDatePatterns) {
+    const match = rawText.match(pattern);
+    if (match && match[1]) {
+      const validatedDate = validateDate(match[1]);
+      if (validatedDate) {
+        dueDate = validatedDate;
+        break;
+      }
+    }
+  }
+
+  // Enhanced vendor name extraction
   let vendorName = 'Unknown Vendor';
+  const firstFewLines = lines.slice(0, 8);
   
-  for (const line of vendorLines) {
-    if (line.match(/^[A-Z][a-zA-Z\s&.,]+(?:Inc|LLC|Corp|Ltd|Corporation|Company)?\.?$/)) {
+  for (const line of firstFewLines) {
+    // Look for company names (typically in caps or proper case)
+    if (line.match(/^[A-Z][a-zA-Z\s&.,'"]+(?:Inc|LLC|Corp|Ltd|Corporation|Company|Co\.|L\.P\.|LLP)?\.?$/)) {
       vendorName = line;
       break;
     }
   }
   
   if (vendorName === 'Unknown Vendor') {
-    vendorName = fileName.replace(/[_-]/g, ' ').replace(/\.(pdf|png|jpg|jpeg)$/i, '').trim();
+    // Try extracting from filename
+    vendorName = fileName
+      .replace(/[_-]/g, ' ')
+      .replace(/\.(pdf|png|jpg|jpeg)$/i, '')
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   }
 
-  // Extract line items
-  const lineItems = extractLineItems(rawText);
-
-  const amount = parseFloat(totalAmount?.replace(/,/g, '') || '0');
+  // Enhanced line items extraction
+  const lineItems = enhancedExtractLineItems(rawText);
 
   return {
-    invoiceNumber: invoiceNumberMatch?.[1] || `INV-${Date.now()}`,
+    invoiceNumber,
     vendorName,
     amount,
     currency: 'USD',
-    invoiceDate: dateMatch?.[1] || new Date().toISOString().split('T')[0],
-    dueDate: dueDateMatch?.[1],
+    invoiceDate,
+    dueDate,
     lineItems: lineItems.length > 0 ? lineItems : [{
       description: 'Service/Product',
       quantity: 1,
@@ -260,13 +427,13 @@ function parseInvoiceText(rawText: string, fileName: string): z.infer<typeof Inv
   };
 }
 
-function extractLineItems(rawText: string): Array<{
+function enhancedExtractLineItems(rawText: string): Array<{
   description: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
 }> {
-  const lines = rawText.split('\n');
+  const lines = rawText.split('\n').map(line => line.trim());
   const lineItems: Array<{
     description: string;
     quantity: number;
@@ -274,21 +441,53 @@ function extractLineItems(rawText: string): Array<{
     totalPrice: number;
   }> = [];
   
-  // Look for table-like structures
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Match patterns like: "Description    Qty    Price    Total"
-    const itemMatch = line.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)$/);
-    
-    if (itemMatch) {
-      const [, description, qty, unitPrice, totalPrice] = itemMatch;
+  // Multiple patterns for different invoice layouts
+  const patterns = [
+    // Pattern 1: Description Qty Price Total
+    /^(.+?)\s+(\d+(?:\.\d+)?)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)$/,
+    // Pattern 2: Description Price
+    /^(.+?)\s+\$?([\d,]+\.?\d*)$/,
+    // Pattern 3: Qty Description Unit Price Total
+    /^(\d+(?:\.\d+)?)\s+(.+?)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)$/,
+  ];
+  
+  for (const line of lines) {
+    for (const pattern of patterns) {
+      const match = line.match(pattern);
+      if (match) {
+        let description, quantity, unitPrice, totalPrice;
+        
+        if (pattern === patterns[0]) {
+          // Description Qty Price Total
+          [, description, quantity, unitPrice, totalPrice] = match;
+          lineItems.push({
+            description: description.trim(),
+            quantity: parseFloat(quantity),
+            unitPrice: parseFloat(unitPrice.replace(/,/g, '')),
+            totalPrice: parseFloat(totalPrice.replace(/,/g, '')),
+          });
+        } else if (pattern === patterns[1]) {
+          // Description Price (assume qty = 1)
+          [, description, totalPrice] = match;
+          const price = parseFloat(totalPrice.replace(/,/g, ''));
+          lineItems.push({
+            description: description.trim(),
+            quantity: 1,
+            unitPrice: price,
+            totalPrice: price,
+          });
+        } else if (pattern === patterns[2]) {
+          // Qty Description Unit Price Total
+          [, quantity, description, unitPrice, totalPrice] = match;
       lineItems.push({
         description: description.trim(),
-        quantity: parseFloat(qty),
+            quantity: parseFloat(quantity),
         unitPrice: parseFloat(unitPrice.replace(/,/g, '')),
         totalPrice: parseFloat(totalPrice.replace(/,/g, '')),
       });
+        }
+        break;
+      }
     }
   }
   
@@ -300,25 +499,31 @@ function calculateConfidence(
   rawText: string,
   method: 'pdf-text' | 'ocr-image'
 ): number {
-  let confidence = method === 'pdf-text' ? 0.92 : 0.78; // Base confidence
+  let confidence = method === 'pdf-text' ? 0.85 : 0.75; // Base confidence
 
-  // Adjust based on extracted data quality
+  // Boost confidence based on data quality
   if (extractedData.invoiceNumber && !extractedData.invoiceNumber.startsWith('INV-')) {
-    confidence += 0.05;
+    confidence += 0.08;
   }
-  if (extractedData.amount > 0) {
-    confidence += 0.05;
+  if (extractedData.amount > 0 && extractedData.amount < 1000000) {
+    confidence += 0.06;
   }
   if (extractedData.vendorName && extractedData.vendorName !== 'Unknown Vendor') {
+    confidence += 0.08;
+  }
+  if (rawText.length > 200) {
     confidence += 0.05;
   }
-  if (rawText.length > 100) {
+  if (extractedData.dueDate) {
     confidence += 0.03;
   }
-  if (extractedData.dueDate) {
-    confidence += 0.02;
-  }
   if (extractedData.lineItems.length > 1) {
+    confidence += 0.04;
+  }
+  if (extractedData.vendorAddress) {
+    confidence += 0.03;
+  }
+  if (extractedData.taxAmount !== undefined) {
     confidence += 0.02;
   }
 

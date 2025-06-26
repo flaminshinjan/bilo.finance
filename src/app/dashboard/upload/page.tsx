@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { CheckCircleIcon, ExclamationTriangleIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { FiUploadCloud, FiCheckCircle, FiAlertTriangle, FiFileText, FiClock, FiActivity } from 'react-icons/fi';
+import { supabase } from '@/utils/supabase';
 
 interface ProcessingResult {
   success: boolean;
@@ -27,19 +28,44 @@ export default function UploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<ProcessingResult | null>(null);
   const [processingSteps, setProcessingSteps] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function getUser() {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        
+        if (user) {
+          setUserId(user.id);
+        } else {
+          // No authenticated user - redirect to login
+          window.location.href = '/auth/login';
+        }
+      } catch (error) {
+        console.error('Error getting user:', error);
+        window.location.href = '/auth/login';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    getUser();
+  }, []);
 
   const simulateProcessingSteps = () => {
     const steps = [
-      '🔍 Extracting data from invoice...',
-      '🤖 AI analyzing document structure...',
-      '✅ Data extraction completed',
-      '🔍 Validating extracted information...',
-      '📊 Running business rule checks...',
-      '⚡ Determining approval workflow...',
-      '💾 Saving to database...',
-      '🎯 Creating approval workflow...',
-      '📧 Sending notifications...',
-      '✅ Processing completed!'
+      'Processing...',
+      'Processing...',
+      'Processing...',
+      'Processing...',
+      'Processing...',
+      'Processing...',
+      'Processing...',
+      'Processing...',
+      'Processing...',
+      'Processing completed!'
     ];
 
     steps.forEach((step, index) => {
@@ -58,6 +84,11 @@ export default function UploadPage() {
     multiple: false,
     onDrop: async (acceptedFiles) => {
       if (acceptedFiles.length === 0) return;
+      
+      if (!userId) {
+        alert('Please log in to upload invoices');
+        return;
+      }
 
       const file = acceptedFiles[0];
       setIsProcessing(true);
@@ -70,9 +101,9 @@ export default function UploadPage() {
       try {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('userId', 'user-123'); // In a real app, get from auth context
+        formData.append('userId', userId); // Use real authenticated user ID
 
-        console.log('🚀 Uploading file to Mastra API:', file.name);
+        console.log('Processing...');
 
         const response = await fetch('/api/mastra/process-invoice', {
           method: 'POST',
@@ -81,11 +112,11 @@ export default function UploadPage() {
 
         const data: ProcessingResult = await response.json();
         
-        console.log('📄 Processing result:', data);
+        console.log('Processing complete');
         setResult(data);
 
       } catch (error) {
-        console.error('❌ Upload failed:', error);
+        console.error('Upload failed:', error);
         setResult({
           success: false,
           message: 'Upload failed',
@@ -100,21 +131,21 @@ export default function UploadPage() {
 
   const getStatusIcon = () => {
     if (isProcessing) {
-      return <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#8B5CF6] border-t-transparent"></div>;
+      return <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#6B7280] dark:border-[#9CA3AF] border-t-transparent"></div>;
     }
     if (result?.success) {
-      return <FiCheckCircle className="h-8 w-8 text-[#10B981]" />;
+      return <FiCheckCircle className="h-8 w-8 text-[#1F2937] dark:text-[#D1D5DB]" />;
     }
     if (result && !result.success) {
-      return <FiAlertTriangle className="h-8 w-8 text-[#EF4444]" />;
+      return <FiAlertTriangle className="h-8 w-8 text-[#6B7280] dark:text-[#9CA3AF]" />;
     }
     return null;
   };
 
   const getStatusColor = () => {
-    if (result?.success) return 'bg-[#10B981]/10 border-[#10B981]/20';
-    if (result && !result.success) return 'bg-[#EF4444]/10 border-[#EF4444]/20';
-    return 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20';
+    if (result?.success) return 'bg-[#F3F4F6] dark:bg-[#333333] border-[#E5E7EB] dark:border-[#555555]';
+    if (result && !result.success) return 'bg-[#F3F4F6] dark:bg-[#333333] border-[#E5E7EB] dark:border-[#555555]';
+    return 'bg-[#F3F4F6] dark:bg-[#333333] border-[#E5E7EB] dark:border-[#555555]';
   };
 
   const renderProcessingResults = () => {
@@ -126,10 +157,10 @@ export default function UploadPage() {
       <div className="space-y-6 mt-6">
         {/* Extracted Data */}
         {extractedData?.extractedData && (
-          <div className="bg-[#F8F9FA] dark:bg-[#374151] rounded-xl p-6 border border-[#E5E7EB] dark:border-[#4B5563]">
+          <div className="bg-[#F8F9FA] dark:bg-[#333333] rounded-xl p-6 border border-[#E5E7EB] dark:border-[#555555]">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="bg-[#8B5CF6]/10 rounded-lg p-2">
-                <FiFileText className="w-5 h-5 text-[#8B5CF6]" />
+              <div className="bg-[#E5E7EB] dark:bg-[#555555] rounded-lg p-2">
+                <FiFileText className="w-5 h-5 text-[#6B7280] dark:text-[#9CA3AF]" />
               </div>
               <h4 className="font-semibold text-[#1F2937] dark:text-white">Extracted Invoice Data</h4>
             </div>
@@ -156,9 +187,9 @@ export default function UploadPage() {
                 <span className="font-medium text-[#6B7280] dark:text-[#9CA3AF]">Confidence Score</span>
                 <span className="text-sm font-medium text-[#1F2937] dark:text-white">{((confidence || 0) * 100).toFixed(1)}%</span>
               </div>
-              <div className="w-full bg-[#E5E7EB] dark:bg-[#4B5563] rounded-full h-3">
+              <div className="w-full bg-[#E5E7EB] dark:bg-[#555555] rounded-full h-3">
                 <div 
-                  className="bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] h-3 rounded-full transition-all duration-500" 
+                  className="bg-[#6B7280] dark:bg-[#9CA3AF] h-3 rounded-full transition-all duration-500" 
                   style={{ width: `${(confidence || 0) * 100}%` }}
                 ></div>
               </div>
@@ -168,20 +199,17 @@ export default function UploadPage() {
 
         {/* Validation Results */}
         {validationResults && (
-          <div className="bg-[#F8F9FA] dark:bg-[#374151] rounded-xl p-6 border border-[#E5E7EB] dark:border-[#4B5563]">
+          <div className="bg-[#F8F9FA] dark:bg-[#333333] rounded-xl p-6 border border-[#E5E7EB] dark:border-[#555555]">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="bg-[#10B981]/10 rounded-lg p-2">
-                <FiCheckCircle className="w-5 h-5 text-[#10B981]" />
+              <div className="bg-[#E5E7EB] dark:bg-[#555555] rounded-lg p-2">
+                <FiCheckCircle className="w-5 h-5 text-[#6B7280] dark:text-[#9CA3AF]" />
               </div>
               <h4 className="font-semibold text-[#1F2937] dark:text-white">Validation Results</h4>
             </div>
             <div className="space-y-3">
               {validationResults.validation_checks?.map((check: any, index: number) => (
-                <div key={index} className="flex items-center space-x-3 p-3 bg-white dark:bg-[#1A1A2E] rounded-lg border border-[#E5E7EB] dark:border-[#374151]">
-                  <span className={`w-3 h-3 rounded-full ${
-                    check.status === 'passed' ? 'bg-[#10B981]' : 
-                    check.status === 'warning' ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
-                  }`}></span>
+                <div key={index} className="flex items-center space-x-3 p-3 bg-white dark:bg-[#1a1a1a] rounded-lg border border-[#E5E7EB] dark:border-[#333333]">
+                  <span className="w-3 h-3 rounded-full bg-[#6B7280] dark:bg-[#9CA3AF]"></span>
                   <span className="text-sm text-[#1F2937] dark:text-white">{check.message}</span>
                 </div>
               ))}
@@ -191,104 +219,109 @@ export default function UploadPage() {
 
         {/* Workflow Decision */}
         {workflowDecision && (
-          <div className="bg-[#F8F9FA] dark:bg-[#374151] rounded-xl p-6 border border-[#E5E7EB] dark:border-[#4B5563]">
+          <div className="bg-[#F8F9FA] dark:bg-[#333333] rounded-xl p-6 border border-[#E5E7EB] dark:border-[#555555]">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="bg-[#3B82F6]/10 rounded-lg p-2">
-                <FiActivity className="w-5 h-5 text-[#3B82F6]" />
+              <div className="bg-[#E5E7EB] dark:bg-[#555555] rounded-lg p-2">
+                <FiActivity className="w-5 h-5 text-[#6B7280] dark:text-[#9CA3AF]" />
               </div>
               <h4 className="font-semibold text-[#1F2937] dark:text-white">Approval Workflow</h4>
             </div>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-[#6B7280] dark:text-[#9CA3AF]">Workflow Type</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  workflowDecision.workflow_type === 'auto_approve' 
-                    ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
-                    : workflowDecision.workflow_type === 'single_approval'
-                    ? 'bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20'
-                    : 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20'
-                }`}>
-                  {workflowDecision.workflow_type.replace('_', ' ').toUpperCase()}
-                </span>
+            <div className="space-y-4">
+              <div className="p-4 bg-white dark:bg-[#1a1a1a] rounded-lg border border-[#E5E7EB] dark:border-[#333333]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-[#1F2937] dark:text-white">Decision</span>
+                  <span className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">{workflowDecision.decision}</span>
+                </div>
+                <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">{workflowDecision.reasoning}</p>
               </div>
-              <p className="text-[#6B7280] dark:text-[#9CA3AF] bg-white dark:bg-[#1A1A2E] p-3 rounded-lg border border-[#E5E7EB] dark:border-[#374151]">
-                {workflowDecision.reasoning}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Manual Review Warning */}
-        {requiresManualReview && (
-          <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-xl p-6">
-            <div className="flex items-center space-x-3">
-              <FiAlertTriangle className="h-6 w-6 text-[#F59E0B]" />
-              <div>
-                <h4 className="font-semibold text-[#1F2937] dark:text-white">Manual Review Required</h4>
-                <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm mt-1">
-                  This invoice requires manual review due to validation issues or low confidence score.
-                </p>
-              </div>
+              
+              {requiresManualReview && (
+                <div className="p-4 bg-[#F3F4F6] dark:bg-[#333333] rounded-lg border border-[#E5E7EB] dark:border-[#555555]">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <FiClock className="w-4 h-4 text-[#6B7280] dark:text-[#9CA3AF]" />
+                    <span className="font-medium text-[#1F2937] dark:text-white">Manual Review Required</span>
+                  </div>
+                  <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
+                    This invoice requires manual approval due to validation concerns.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Next Steps */}
         {nextSteps && nextSteps.length > 0 && (
-          <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/20 rounded-xl p-6">
+          <div className="bg-[#F8F9FA] dark:bg-[#333333] rounded-xl p-6 border border-[#E5E7EB] dark:border-[#555555]">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="bg-[#3B82F6]/10 rounded-lg p-2">
-                <FiClock className="w-5 h-5 text-[#3B82F6]" />
+              <div className="bg-[#E5E7EB] dark:bg-[#555555] rounded-lg p-2">
+                <FiActivity className="w-5 h-5 text-[#6B7280] dark:text-[#9CA3AF]" />
               </div>
               <h4 className="font-semibold text-[#1F2937] dark:text-white">Next Steps</h4>
             </div>
-            <ul className="space-y-2">
+            <div className="space-y-2">
               {nextSteps.map((step, index) => (
-                <li key={index} className="text-sm text-[#1F2937] dark:text-white flex items-start space-x-3">
-                  <span className="w-2 h-2 bg-[#3B82F6] rounded-full mt-2 flex-shrink-0"></span>
-                  <span>{step}</span>
-                </li>
+                <div key={index} className="flex items-center space-x-3 p-3 bg-white dark:bg-[#1a1a1a] rounded-lg border border-[#E5E7EB] dark:border-[#333333]">
+                  <span className="flex-shrink-0 w-6 h-6 bg-[#E5E7EB] dark:bg-[#555555] text-[#6B7280] dark:text-[#9CA3AF] rounded-full flex items-center justify-center text-xs font-medium">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm text-[#1F2937] dark:text-white">{step}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
       </div>
     );
   };
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#1F2937] dark:text-white">Upload Invoice</h1>
-          <p className="text-[#6B7280] dark:text-[#9CA3AF] mt-1">
-            Upload PDF, JPG, or PNG invoices for AI-powered processing and approval workflow management.
-          </p>
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-[#F3F4F6] dark:bg-[#333333] rounded w-1/4 mb-6"></div>
+          <div className="max-w-2xl mx-auto">
+            <div className="h-64 bg-[#F3F4F6] dark:bg-[#333333] rounded-2xl"></div>
+          </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+
 
       {/* Upload Area */}
-      <div className="bg-white dark:bg-[#1A1A2E] rounded-2xl border border-[#E5E7EB] dark:border-[#374151] overflow-hidden">
+      <div className="max-w-2xl mx-auto">
         <div
           {...getRootProps()}
-          className={`relative p-12 text-center cursor-pointer transition-all duration-200 ${
-            isDragActive 
-              ? 'bg-[#8B5CF6]/5 border-[#8B5CF6] border-2 border-dashed' 
-              : 'hover:bg-[#F8F9FA] dark:hover:bg-[#374151]/30 border-2 border-dashed border-[#E5E7EB] dark:border-[#374151]'
-          }`}
+          className={`
+            relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-200
+            ${isDragActive 
+              ? 'border-[#6B7280] dark:border-[#9CA3AF] bg-[#F8F9FA] dark:bg-[#333333]' 
+              : 'border-[#E5E7EB] dark:border-[#333333] hover:border-[#6B7280] dark:hover:border-[#9CA3AF] hover:bg-[#F8F9FA] dark:hover:bg-[#333333]'
+            }
+          `}
         >
           <input {...getInputProps()} />
-          <div className="space-y-6">
-            <div className="bg-[#8B5CF6]/10 rounded-2xl p-4 w-fit mx-auto">
-              <FiUploadCloud className="w-12 h-12 text-[#8B5CF6]" />
+          
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <div className="bg-[#F3F4F6] dark:bg-[#333333] rounded-xl p-4">
+                <FiUploadCloud className="w-12 h-12 text-[#6B7280] dark:text-[#9CA3AF]" />
+              </div>
             </div>
+            
             <div>
-              <p className="text-xl font-semibold text-[#1F2937] dark:text-white mb-2">
-                {isDragActive ? 'Drop your invoice here' : 'Upload an invoice'}
+              <h3 className="text-lg font-semibold text-[#1F2937] dark:text-white mb-2">
+                {isDragActive ? 'Drop your invoice here' : 'Upload your invoice'}
+              </h3>
+              <p className="text-[#6B7280] dark:text-[#9CA3AF] mb-4">
+                Drag and drop your file here, or click to browse
               </p>
-              <p className="text-[#6B7280] dark:text-[#9CA3AF]">
-                Drag and drop or click to select • PDF, JPG, PNG • Max 10MB
+              <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
+                Supports PDF, JPG, PNG files up to 10MB
               </p>
             </div>
           </div>
@@ -297,86 +330,62 @@ export default function UploadPage() {
 
       {/* Processing Status */}
       {(isProcessing || result) && (
-        <div className={`rounded-2xl border p-8 ${getStatusColor()}`}>
-          <div className="flex items-center space-x-4 mb-6">
-            {getStatusIcon()}
-            <div>
-              <h3 className="text-xl font-semibold text-[#1F2937] dark:text-white">
-                {isProcessing ? 'Processing Invoice...' : result?.message}
-              </h3>
-              {result?.timestamp && (
-                <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF] mt-1">
-                  Processed at {new Date(result.timestamp).toLocaleString()}
+        <div className="max-w-2xl mx-auto">
+          <div className={`p-6 rounded-2xl border ${getStatusColor()}`}>
+            <div className="flex items-center space-x-4 mb-4">
+              {getStatusIcon()}
+              <div>
+                <h3 className="font-semibold text-[#1F2937] dark:text-white">
+                  {isProcessing ? 'Processing Invoice' : result?.success ? 'Processing Complete' : 'Processing Failed'}
+                </h3>
+                <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
+                  {isProcessing ? 'Please wait while we analyze your invoice...' : result?.message}
                 </p>
-              )}
+              </div>
             </div>
-          </div>
 
-          {/* Processing Steps */}
-          {isProcessing && processingSteps.length > 0 && (
-            <div className="mb-6">
-              <h4 className="font-semibold text-[#1F2937] dark:text-white mb-4">Processing Steps</h4>
-              <div className="space-y-3">
+            {/* Processing Steps */}
+            {isProcessing && processingSteps.length > 0 && (
+              <div className="mt-4 space-y-2 max-h-32 overflow-y-auto">
                 {processingSteps.map((step, index) => (
-                  <div key={index} className="flex items-center space-x-3 text-sm text-[#6B7280] dark:text-[#9CA3AF] bg-white dark:bg-[#1A1A2E] p-3 rounded-lg border border-[#E5E7EB] dark:border-[#374151]">
-                    <div className="w-2 h-2 bg-[#8B5CF6] rounded-full animate-pulse"></div>
-                    <span>{step}</span>
+                  <div key={index} className="flex items-center space-x-3 text-sm">
+                    <div className="w-2 h-2 bg-[#6B7280] dark:bg-[#9CA3AF] rounded-full"></div>
+                    <span className="text-[#6B7280] dark:text-[#9CA3AF]">{step}</span>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Error Display */}
-          {result && !result.success && (
-            <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl p-4 mb-6">
-              <div className="flex items-center space-x-3">
-                <FiAlertTriangle className="h-5 w-5 text-[#EF4444]" />
-                <p className="text-[#EF4444] text-sm font-medium">{result.error || 'Processing failed'}</p>
+            {/* Error Details */}
+            {result && !result.success && result.error && (
+              <div className="mt-4 p-4 bg-[#F8F9FA] dark:bg-[#333333] rounded-lg border border-[#E5E7EB] dark:border-[#555555]">
+                <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
+                  <strong>Error:</strong> {result.error}
+                </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Results Display */}
-          {result?.success && renderProcessingResults()}
+          {/* Results */}
+          {renderProcessingResults()}
         </div>
       )}
 
-      {/* Info Cards */}
-      <div>
-        <h2 className="text-xl font-semibold text-[#1F2937] dark:text-white mb-6">How it works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-[#1A1A2E] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#374151] hover:shadow-lg transition-all duration-200">
-            <div className="bg-[#8B5CF6]/10 rounded-xl p-3 w-fit mb-4">
-              <FiFileText className="h-8 w-8 text-[#8B5CF6]" />
-            </div>
-            <h3 className="font-semibold text-[#1F2937] dark:text-white mb-2">AI-Powered Extraction</h3>
-            <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
-              Advanced OCR and ML models extract data with high accuracy from your invoices
-            </p>
-          </div>
-          
-          <div className="bg-white dark:bg-[#1A1A2E] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#374151] hover:shadow-lg transition-all duration-200">
-            <div className="bg-[#10B981]/10 rounded-xl p-3 w-fit mb-4">
-              <FiCheckCircle className="h-8 w-8 text-[#10B981]" />
-            </div>
-            <h3 className="font-semibold text-[#1F2937] dark:text-white mb-2">Smart Validation</h3>
-            <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
-              Intelligent validation checks ensure data quality and compliance with your policies
-            </p>
-          </div>
-          
-          <div className="bg-white dark:bg-[#1A1A2E] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#374151] hover:shadow-lg transition-all duration-200">
-            <div className="bg-[#3B82F6]/10 rounded-xl p-3 w-fit mb-4">
-              <FiActivity className="h-8 w-8 text-[#3B82F6]" />
-            </div>
-            <h3 className="font-semibold text-[#1F2937] dark:text-white mb-2">Automated Workflows</h3>
-            <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
-              Dynamic approval routing based on your business policies and risk assessment
-            </p>
-          </div>
+      {/* Upload Another Button */}
+      {result && !isProcessing && (
+        <div className="text-center">
+          <button
+            onClick={() => {
+              setResult(null);
+              setProcessingSteps([]);
+            }}
+            className="inline-flex items-center px-6 py-3 bg-[#1F2937] dark:bg-white text-white dark:text-[#1F2937] font-medium rounded-xl hover:bg-[#333333] dark:hover:bg-[#F3F4F6] transition-colors duration-200 shadow-lg hover:shadow-xl"
+          >
+            <FiUploadCloud className="mr-2 h-5 w-5" />
+            Upload Another Invoice
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 } 

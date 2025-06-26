@@ -34,7 +34,7 @@ You are an expert AI agent specialized in validating extracted invoice data for 
 **Output Requirements:**
 Provide detailed validation results with pass/warning/fail status for each check, overall risk assessment, and recommendations for manual review when needed.
 `,
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-20250514'),
 });
 
 // Helper function to validate invoice data

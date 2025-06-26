@@ -36,7 +36,7 @@ You are an expert AI agent specialized in managing approval workflows for the Bi
 **Output Requirements:**
 Always provide clear reasoning for workflow decisions and ensure appropriate approvers are assigned with realistic deadlines.
 `,
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-20250514'),
   tools: {
     createApprovalWorkflow: createApprovalWorkflowTool,
     getPendingApprovals: getPendingApprovalsTool,

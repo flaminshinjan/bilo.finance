@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 Starting invoice processing via Mastra agents...');
+    console.log('Processing...');
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
 
-    console.log(`📄 Processing file: ${file.name} (${file.type}, ${fileBuffer.length} bytes)`);
+
 
     // Dynamic import to avoid build issues
     const { executeInvoiceProcessingWorkflow } = await import('@/mastra/workflows/invoice-processing-workflow');
@@ -54,12 +54,8 @@ export async function POST(request: NextRequest) {
       userId
     );
 
-    console.log('🔍 Workflow result structure:', JSON.stringify(workflowResult, null, 2));
-
     // Extract the actual result from Mastra workflow structure
     const stepResult = workflowResult?.outputs?.[0] || workflowResult?.result || workflowResult;
-    
-    console.log('🔍 Step result:', JSON.stringify(stepResult, null, 2));
 
     // Format response
     const response = {
@@ -74,14 +70,14 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     };
 
-    console.log(`✅ Invoice processing completed: ${stepResult.success ? 'SUCCESS' : 'FAILED'}`);
+
 
     return NextResponse.json(response, {
       status: stepResult.success ? 200 : 500
     });
 
   } catch (error) {
-    console.error('❌ Invoice processing API error:', error);
+    console.error('Processing error:', error);
     
     return NextResponse.json(
       {

@@ -90,7 +90,7 @@ export const getDueInvoicesTool = new Tool({
     totalAmount: z.number(),
     count: z.number(),
   }),
-  execute: async ({ userId, daysAhead, status }) => {
+  execute: async ({ context: { userId, daysAhead, status } }) => {
     try {
       console.log(`📋 Getting due invoices for next ${daysAhead} days...`);
       
@@ -167,7 +167,7 @@ export const updateInvoiceStatusTool = new Tool({
     message: z.string(),
     updatedInvoice: z.any().optional(),
   }),
-  execute: async ({ invoiceId, status, approvalStatus, notes, updatedBy }) => {
+  execute: async ({ context: { invoiceId, status, approvalStatus, notes, updatedBy } }) => {
     try {
       console.log(`📝 Updating invoice ${invoiceId} status to ${status}...`);
       
@@ -233,7 +233,7 @@ export const createApprovalWorkflowTool = new Tool({
     workflowId: z.string(),
     message: z.string(),
   }),
-  execute: async ({ invoiceId, workflowType, approvers, createdBy }) => {
+  execute: async ({ context: { invoiceId, workflowType, approvers, createdBy } }) => {
     try {
       console.log(`🔄 Creating approval workflow for invoice ${invoiceId}...`);
 
@@ -296,7 +296,7 @@ export const getPendingApprovalsTool = new Tool({
     })),
     count: z.number(),
   }),
-  execute: async ({ userId, limit }) => {
+  execute: async ({ context: { userId, limit } }) => {
     try {
       console.log(`📋 Getting pending approvals for user ${userId}...`);
 
@@ -347,7 +347,210 @@ export const getPendingApprovalsTool = new Tool({
       };
     } catch (error) {
       console.error('❌ Failed to get pending approvals:', error);
-      throw new Error(`Failed to get pending approvals: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return {
+        approvals: [],
+        count: 0,
+      };
+    }
+  },
+});
+
+// Tool to submit invoice for reimbursement
+export const submitReimbursementTool = new Tool({
+  id: 'submit-reimbursement',
+  description: 'Submit an invoice for employee reimbursement',
+  inputSchema: z.object({
+    invoiceId: z.string(),
+    employeeId: z.string(),
+    employeeName: z.string(),
+    employeeEmail: z.string().optional(),
+    reimbursementAmount: z.number(),
+    currency: z.string().default('USD'),
+    expenseCategory: z.string().optional(),
+    businessPurpose: z.string(),
+    reimbursementDate: z.string().optional(), // YYYY-MM-DD format
+  }),
+  outputSchema: z.object({
+    success: z.boolean(),
+    reimbursementId: z.string().optional(),
+    message: z.string(),
+  }),
+  execute: async ({ context: { invoiceId, employeeId, employeeName, employeeEmail, reimbursementAmount, currency, expenseCategory, businessPurpose, reimbursementDate } }) => {
+    try {
+      console.log(`💰 Submitting reimbursement for invoice ${invoiceId}...`);
+
+      // First, check if the invoice exists and get its details
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', invoiceId)
+        .single();
+
+      if (invoiceError || !invoice) {
+        throw new Error(`Invoice not found: ${invoiceId}`);
+      }
+
+      // Check if reimbursement already exists for this user and invoice (by checking description)
+      const { data: existingReimbursements, error: checkError } = await supabase
+        .from('reimbursements')
+        .select('id, description')
+        .eq('user_id', employeeId)
+        .ilike('description', `%Invoice: ${invoice.invoice_number}%`);
+
+      if (existingReimbursements && existingReimbursements.length > 0) {
+        return {
+          success: false,
+          message: 'Reimbursement request already exists for this invoice',
+        };
+      }
+
+      // Create reimbursement record using the actual schema
+      const reimbursementData = {
+        user_id: employeeId,
+        amount: reimbursementAmount,
+        description: `${businessPurpose} - Invoice: ${invoice.invoice_number} from ${invoice.vendor_name}`,
+        category: expenseCategory || 'General',
+        status: 'pending',
+        receipt_url: null, // Can be added later if needed
+      };
+
+      const { data: reimbursement, error: reimbursementError } = await supabase
+        .from('reimbursements')
+        .insert(reimbursementData)
+        .select()
+        .single();
+
+      if (reimbursementError) {
+        throw reimbursementError;
+      }
+
+      console.log(`✅ Reimbursement submitted with ID: ${reimbursement.id}`);
+
+      // Update invoice status to indicate it's been submitted for reimbursement
+      await supabase
+        .from('invoices')
+        .update({ 
+          status: 'pending',
+          notes: `Submitted for reimbursement by ${employeeName}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', invoiceId);
+
+      return {
+        success: true,
+        reimbursementId: reimbursement.id,
+        message: `Reimbursement submitted successfully! Amount: ${currency}${reimbursementAmount}`,
+      };
+    } catch (error) {
+      console.error('❌ Failed to submit reimbursement:', error);
+      return {
+        success: false,
+        message: `Failed to submit reimbursement: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  },
+});
+
+// Tool to get reimbursements for a user
+export const getUserReimbursementsTool = new Tool({
+  id: 'get-user-reimbursements',
+  description: 'Get reimbursements for a specific user',
+  inputSchema: z.object({
+    employeeId: z.string(),
+    status: z.string().optional(),
+    limit: z.number().default(10),
+  }),
+  outputSchema: z.object({
+    reimbursements: z.array(z.object({
+      id: z.string(),
+      invoice_id: z.string(),
+      employee_name: z.string(),
+      employee_email: z.string().optional(),
+      business_purpose: z.string(),
+      amount: z.number(),
+      currency: z.string(),
+      status: z.string(),
+      created_at: z.string(),
+      vendor_name: z.string(),
+      invoice_number: z.string(),
+      invoice_date: z.string().optional(),
+    })),
+    totalAmount: z.number(),
+    count: z.number(),
+  }),
+  execute: async ({ context: { employeeId, status, limit } }) => {
+    try {
+      console.log(`📋 Getting reimbursements for employee ${employeeId}...`);
+
+      // Get reimbursements with user profile information
+      let query = supabase
+        .from('reimbursements')
+        .select(`
+          id,
+          user_id,
+          amount,
+          description,
+          category,
+          status,
+          created_at,
+          approved_at,
+          approved_by,
+          profiles!reimbursements_user_id_fkey!inner(
+            full_name,
+            email
+          )
+        `)
+        .eq('user_id', employeeId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      const reimbursements = (data || []).map(reimbursement => {
+        // Extract invoice info from description if available
+        const invoiceNumberMatch = reimbursement.description.match(/Invoice: ([^\s]+)/);
+        const vendorMatch = reimbursement.description.match(/from (.+)$/);
+        
+        return {
+          id: reimbursement.id,
+          invoice_id: null, // Not stored directly
+          employee_name: reimbursement.profiles?.full_name || 'Unknown User',
+          employee_email: reimbursement.profiles?.email || null,
+          business_purpose: reimbursement.description,
+          amount: reimbursement.amount,
+          currency: 'USD', // Default since not stored
+          status: reimbursement.status,
+          created_at: reimbursement.created_at,
+          vendor_name: vendorMatch ? vendorMatch[1] : null,
+          invoice_number: invoiceNumberMatch ? invoiceNumberMatch[1] : null,
+          invoice_date: null, // Not available without invoice join
+        };
+      });
+
+      const totalAmount = reimbursements.reduce((sum, r) => sum + r.amount, 0);
+
+      console.log(`✅ Found ${reimbursements.length} reimbursements for employee ${employeeId}`);
+
+      return {
+        reimbursements,
+        totalAmount,
+        count: reimbursements.length,
+      };
+    } catch (error) {
+      console.error('❌ Failed to get reimbursements:', error);
+      return {
+        reimbursements: [],
+        totalAmount: 0,
+        count: 0,
+      };
     }
   },
 }); 

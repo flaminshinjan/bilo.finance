@@ -16,6 +16,8 @@
     "@mastra/loggers": "^0.10.2",
     "@mastra/memory": "^0.11.0",
     "@supabase/supabase-js": "^2.49.8",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.2",
     "multer": "^2.0.1",
     "next": "^15.3.4",
     "pdf-parse": "^1.1.1",

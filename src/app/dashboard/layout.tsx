@@ -123,9 +123,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0F0F23]" data-theme={theme}>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black" data-theme={theme}>
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#8B5CF6] border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#6B7280] dark:border-[#9CA3AF] border-t-transparent"></div>
           <p className="text-sm text-gray-600 dark:text-gray-400">Loading dashboard...</p>
         </div>
       </div>
@@ -133,16 +133,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0F0F23] transition-all duration-200" data-theme={theme}>
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-black transition-all duration-200" data-theme={theme}>
       {/* Modern Floating Sidebar */}
       <aside 
-        className={`fixed top-4 left-4 h-[calc(100vh-2rem)] bg-[#1A1A2E] shadow-2xl transition-all duration-300 z-30 rounded-3xl border border-gray-800/50
+        className={`fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white dark:bg-[#1a1a1a] shadow-2xl transition-all duration-300 z-30 rounded-3xl border border-[#E5E7EB] dark:border-[#333333]
           ${isSidebarOpen ? 'w-[280px]' : 'w-20'} 
           transform lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <div className="h-full flex flex-col">
           {/* Logo Section */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-800/50">
+          <div className="flex items-center justify-between p-6 border-b border-[#E5E7EB] dark:border-[#333333]">
             <Link href="/dashboard" className={`flex items-center transition-opacity duration-200 ${!isSidebarOpen && 'lg:opacity-0 lg:pointer-events-none'}`}>
               <Image
                 src="/bilo-logo.png"
@@ -152,9 +152,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 className="cursor-pointer"
               />
             </Link>
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-white transition-all duration-200 lg:hidden"
+                          <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-2 rounded-xl hover:bg-[#F3F4F6] dark:hover:bg-[#333333] text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#1F2937] dark:hover:text-white transition-all duration-200 lg:hidden"
             >
               {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
@@ -165,7 +165,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             {/* Main Section */}
             <div className="space-y-2">
               {isSidebarOpen && (
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
                   MAIN
                 </h3>
               )}
@@ -178,12 +178,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
                       ${isActive 
-                        ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20' 
-                        : 'text-[#9CA3AF] hover:bg-[#8B5CF6]/10 hover:text-white'}`}
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
                   >
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#9CA3AF] group-hover:text-white'}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
                     {isSidebarOpen && (
-                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-white'}`}>
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
                         {item.label}
                       </span>
                     )}
@@ -195,7 +195,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             {/* Analytics Section */}
             <div className="space-y-2 mt-8">
               {isSidebarOpen && (
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
                   ANALYTICS
                 </h3>
               )}
@@ -208,12 +208,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
                       ${isActive 
-                        ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20' 
-                        : 'text-[#9CA3AF] hover:bg-[#8B5CF6]/10 hover:text-white'}`}
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
                   >
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#9CA3AF] group-hover:text-white'}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
                     {isSidebarOpen && (
-                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-white'}`}>
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
                         {item.label}
                       </span>
                     )}
@@ -225,7 +225,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             {/* Management Section */}
             <div className="space-y-2 mt-8">
               {isSidebarOpen && (
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
                   MANAGEMENT
                 </h3>
               )}
@@ -238,12 +238,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
                       ${isActive 
-                        ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20' 
-                        : 'text-[#9CA3AF] hover:bg-[#8B5CF6]/10 hover:text-white'}`}
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
                   >
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#9CA3AF] group-hover:text-white'}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
                     {isSidebarOpen && (
-                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-white'}`}>
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
                         {item.label}
                       </span>
                     )}
@@ -255,7 +255,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             {/* Resources Section */}
             <div className="space-y-2 mt-8">
               {isSidebarOpen && (
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
                   RESOURCES
                 </h3>
               )}
@@ -268,12 +268,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
                       ${isActive 
-                        ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20' 
-                        : 'text-[#9CA3AF] hover:bg-[#8B5CF6]/10 hover:text-white'}`}
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
                   >
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#9CA3AF] group-hover:text-white'}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
                     {isSidebarOpen && (
-                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-white'}`}>
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
                         {item.label}
                       </span>
                     )}
@@ -285,7 +285,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             {/* Other Section */}
             <div className="space-y-2 mt-8">
               {isSidebarOpen && (
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
                   OTHERS
                 </h3>
               )}
@@ -298,12 +298,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
                       ${isActive 
-                        ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20' 
-                        : 'text-[#9CA3AF] hover:bg-[#8B5CF6]/10 hover:text-white'}`}
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
                   >
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#9CA3AF] group-hover:text-white'}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
                     {isSidebarOpen && (
-                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-white'}`}>
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
                         {item.label}
                       </span>
                     )}
@@ -314,11 +314,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* Bottom Section */}
-          <div className="p-6 border-t border-gray-800/50">
+          <div className="p-6 border-t border-[#E5E7EB] dark:border-[#333333]">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-white transition-all duration-200"
+                className="p-2 rounded-xl hover:bg-[#F3F4F6] dark:hover:bg-[#333333] text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#1F2937] dark:hover:text-white transition-all duration-200"
                 title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
@@ -326,7 +326,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               <button
                 onClick={handleSignOut}
                 disabled={signingOut}
-                className="flex items-center space-x-2 text-red-400 hover:text-red-300 transition-colors duration-200 p-2 rounded-xl hover:bg-red-500/10"
+                className="flex items-center space-x-2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#1F2937] dark:hover:text-white transition-colors duration-200 p-2 rounded-xl hover:bg-[#F3F4F6] dark:hover:bg-[#333333]"
                 title="Sign out"
               >
                 <FiLogOut className="w-5 h-5" />
@@ -335,11 +335,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             {isSidebarOpen && user && (
-              <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/50">
-                <div className="text-sm text-white font-medium truncate">
+              <div className="bg-[#F8F9FA] dark:bg-[#333333] rounded-xl p-3 border border-[#E5E7EB] dark:border-[#555555]">
+                <div className="text-sm text-[#1F2937] dark:text-white font-medium truncate">
                   {user.email}
                 </div>
-                <div className="text-xs text-gray-400 mt-1">
+                <div className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">
                   Account Settings
                 </div>
               </div>
@@ -362,25 +362,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           isSidebarOpen ? 'lg:pl-[296px]' : 'lg:pl-[112px]'
         }`}
       >
-        {/* Header */}
-        <header className="bg-white dark:bg-[#1A1A2E] border-b border-gray-200 dark:border-gray-800 h-20 flex items-center justify-between px-6 lg:px-8 ml-0 lg:ml-4 rounded-none lg:rounded-t-2xl lg:mt-4 lg:mr-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
-            >
-              <FiMenu className="w-6 h-6" />
-            </button>
-          </div>
-          <div className="flex items-center space-x-4">
-            {/* You can add header actions here */}
-          </div>
-        </header>
+
 
         {/* Content */}
-        <div className="p-6 lg:p-8 max-w-7xl mx-auto lg:mr-4">
+        <div className="p-6 lg:p-8 max-w-7xl mx-auto lg:mr-4 lg:mt-4">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-800 dark:text-red-400">
+            <div className="mb-6 p-4 bg-[#F3F4F6] dark:bg-[#374151] border border-[#E5E7EB] dark:border-[#4B5563] rounded-xl text-[#6B7280] dark:text-[#9CA3AF]">
               {error}
             </div>
           )}

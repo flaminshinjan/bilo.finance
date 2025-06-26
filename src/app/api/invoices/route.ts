@@ -3,7 +3,7 @@ import { supabase } from '@/utils/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📋 Fetching invoices from database...');
+    console.log('Loading...');
     
     const { data: invoices, error } = await supabase
       .from('invoices')
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       throw error;
     }
     
-    console.log(`✅ Found ${invoices?.length || 0} invoices`);
+
     
     return NextResponse.json({
       success: true,
