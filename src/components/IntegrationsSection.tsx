@@ -12,7 +12,7 @@ export const IntegrationsSection = () => {
   return (
     <section className="pt-2 px-4">
       <div className="text-center">
-        <p className="text-base sm:text-lg font-medium mb-3 text-[#333333]">
+        <p className="text-base sm:text-lg font-medium mb-3 text-black">
           Integrations possible with
         </p>
         <div className="scroll-container w-full max-w-[545px] mx-auto">
