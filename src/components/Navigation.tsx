@@ -10,10 +10,10 @@ import { FiSun, FiMoon } from 'react-icons/fi';
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, isLandingPage } = useTheme();
 
-  // Hide navigation in dashboard, auth, and company routes
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/auth') || pathname.startsWith('/company')) {
+  // Hide navigation in dashboard, auth, company routes, and user type selection
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/auth') || pathname.startsWith('/company') || pathname === '/select-user-type') {
     return null;
   }
 
@@ -67,17 +67,19 @@ export function Navigation() {
 
         {/* Theme Toggle & Try Now Button */}
         <div className="hidden md:flex items-center space-x-4">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
-            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          >
-            {theme === 'light' ? (
-              <FiMoon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-            ) : (
-              <FiSun className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-            )}
-          </button>
+          {!isLandingPage && (
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? (
+                <FiMoon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+              ) : (
+                <FiSun className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+              )}
+            </button>
+          )}
           
           <Link 
             href="/select-user-type" 
@@ -114,17 +116,19 @@ export function Navigation() {
               )}
         </Link>
             
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center"
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            >
-              {theme === 'light' ? (
-                <FiMoon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-              ) : (
-                <FiSun className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-              )}
-            </button>
+            {!isLandingPage && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center"
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              >
+                {theme === 'light' ? (
+                  <FiMoon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                ) : (
+                  <FiSun className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                )}
+              </button>
+            )}
             
             <Link 
               href="/select-user-type" 

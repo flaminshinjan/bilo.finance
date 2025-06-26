@@ -1,12 +1,14 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  isLandingPage: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -14,10 +16,22 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  
+  // Check if we're on the landing page (home or about)
+  const isLandingPage = pathname === '/' || pathname === '/about';
 
   useEffect(() => {
     setMounted(true);
-    // Check local storage for saved theme
+    
+    // Force light theme for landing page
+    if (isLandingPage) {
+      setTheme('light');
+      document.documentElement.classList.remove('dark');
+      return;
+    }
+    
+    // For other pages, use saved theme or system preference
     const savedTheme = localStorage.getItem('theme') as Theme;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
@@ -32,10 +46,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setTheme('dark');
       document.documentElement.classList.add('dark');
     }
-  }, []);
+  }, [isLandingPage]);
 
   useEffect(() => {
     if (mounted) {
+      // Force light theme for landing page
+      if (isLandingPage) {
+        setTheme('light');
+        document.documentElement.classList.remove('dark');
+        return;
+      }
+      
+      // For other pages, apply theme normally
       if (theme === 'dark') {
         document.documentElement.classList.add('dark');
       } else {
@@ -43,9 +65,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
       localStorage.setItem('theme', theme);
     }
-  }, [theme, mounted]);
+  }, [theme, mounted, isLandingPage]);
 
   const toggleTheme = () => {
+    // Prevent theme toggle on landing page
+    if (isLandingPage) return;
+    
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
   };
@@ -56,7 +81,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, isLandingPage }}>
       {children}
     </ThemeContext.Provider>
   );
