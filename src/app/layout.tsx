@@ -13,6 +13,12 @@ export const metadata: Metadata = {
     icon: "/logo.png",
     apple: "/logo.png",
   },
+  other: {
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+  },
 };
 
 export default function RootLayout({
@@ -22,6 +28,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="robots" content="index, follow" />
+        <meta name="googlebot" content="index, follow" />
+      </head>
       <body className={josefinSans.className}>
         <ThemeProvider>
           <Navigation />
