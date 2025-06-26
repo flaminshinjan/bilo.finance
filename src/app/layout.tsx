@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import { Josefin_Sans } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const josefinSans = Josefin_Sans({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "bilo.app - AI Invoicing Company",
+  title: "usebilo.app - AI Invoicing Company",
   description: "The First AI Invoicing Company",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/logo.png",
     apple: "/logo.png",
   },
 };
@@ -22,8 +23,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={josefinSans.className}>
-        <Navigation />
-        {children}
+        <ThemeProvider>
+          <Navigation />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

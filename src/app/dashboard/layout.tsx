@@ -6,7 +6,32 @@ import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
-import { FiMenu, FiX, FiUpload, FiFileText, FiDollarSign, FiSettings, FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
+import { 
+  FiMenu, 
+  FiX, 
+  FiUpload, 
+  FiFileText, 
+  FiDollarSign, 
+  FiSettings, 
+  FiSun, 
+  FiMoon, 
+  FiLogOut,
+  FiHome,
+  FiCreditCard,
+  FiBarChart,
+  FiPieChart,
+  FiTrendingUp,
+  FiUsers,
+  FiZap,
+  FiShield,
+  FiHelpCircle,
+  FiBookOpen,
+  FiMail,
+  FiGlobe,
+  FiBell,
+  FiDownload,
+  FiArchive
+} from 'react-icons/fi';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -65,91 +90,258 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const navItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: FiMenu },
+  const mainNavItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: FiHome },
     { href: '/dashboard/upload', label: 'Upload Invoice', icon: FiUpload },
     { href: '/dashboard/invoices', label: 'Invoices', icon: FiFileText },
-    { href: '/dashboard/reimbursements', label: 'Reimbursements', icon: FiDollarSign },
+    { href: '/dashboard/reimbursements', label: 'Reimbursements', icon: FiCreditCard },
+  ];
+
+  const analyticsNavItems = [
+    { href: '/dashboard/analytics', label: 'Analytics', icon: FiBarChart },
+    { href: '/dashboard/reports', label: 'Reports', icon: FiPieChart },
+    { href: '/dashboard/insights', label: 'Insights', icon: FiTrendingUp },
+  ];
+
+  const managementNavItems = [
+    { href: '/dashboard/users', label: 'User Management', icon: FiUsers },
+    { href: '/dashboard/integrations', label: 'Integrations', icon: FiZap },
+    { href: '/dashboard/security', label: 'Security', icon: FiShield },
+    { href: '/dashboard/notifications', label: 'Notifications', icon: FiBell },
+  ];
+
+  const resourcesNavItems = [
+    { href: '/dashboard/help', label: 'Help Center', icon: FiHelpCircle },
+    { href: '/dashboard/documentation', label: 'Documentation', icon: FiBookOpen },
+    { href: '/dashboard/support', label: 'Contact Support', icon: FiMail },
+    { href: '/dashboard/archive', label: 'Archive', icon: FiArchive },
+  ];
+
+  const otherNavItems = [
     { href: '/dashboard/settings', label: 'Settings', icon: FiSettings },
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" data-theme={theme}>
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black" data-theme={theme}>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#6B7280] dark:border-[#9CA3AF] border-t-transparent"></div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200" data-theme={theme}>
-      {/* Floating Sidebar */}
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-black transition-all duration-200" data-theme={theme}>
+      {/* Modern Floating Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 h-full bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 z-30
-          ${isSidebarOpen ? 'w-72' : 'w-20'} 
+        className={`fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white dark:bg-[#1a1a1a] shadow-2xl transition-all duration-300 z-30 rounded-3xl border border-[#E5E7EB] dark:border-[#333333]
+          ${isSidebarOpen ? 'w-[280px]' : 'w-20'} 
           transform lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between p-4">
-            <Link href="/dashboard" className={`flex items-center ${!isSidebarOpen && 'lg:hidden'}`}>
+          {/* Logo Section */}
+          <div className="flex items-center justify-between p-6 border-b border-[#E5E7EB] dark:border-[#333333]">
+            <Link href="/dashboard" className={`flex items-center transition-opacity duration-200 ${!isSidebarOpen && 'lg:opacity-0 lg:pointer-events-none'}`}>
               <Image
                 src="/bilo-logo.png"
                 alt="Bilo Logo"
-                width={100}
+                width={120}
                 height={40}
                 className="cursor-pointer"
               />
             </Link>
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
+                          <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-2 rounded-xl hover:bg-[#F3F4F6] dark:hover:bg-[#333333] text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#1F2937] dark:hover:text-white transition-all duration-200 lg:hidden"
             >
-              {isSidebarOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
+              {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto p-4">
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-6">
+            {/* Main Section */}
             <div className="space-y-2">
-              {navItems.map((item) => {
+              {isSidebarOpen && (
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
+                  MAIN
+                </h3>
+              )}
+              {mainNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center space-x-3 p-3 rounded-lg transition-colors
+                    className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
                       ${isActive 
-                        ? 'bg-primary text-black dark:bg-primary/20 dark:text-primary' 
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
                   >
-                    <Icon className="w-5 h-5" />
-                    {isSidebarOpen && <span>{item.label}</span>}
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
+                    {isSidebarOpen && (
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
+                        {item.label}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Analytics Section */}
+            <div className="space-y-2 mt-8">
+              {isSidebarOpen && (
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
+                  ANALYTICS
+                </h3>
+              )}
+              {analyticsNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
+                      ${isActive 
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
+                    {isSidebarOpen && (
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
+                        {item.label}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Management Section */}
+            <div className="space-y-2 mt-8">
+              {isSidebarOpen && (
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
+                  MANAGEMENT
+                </h3>
+              )}
+              {managementNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
+                      ${isActive 
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
+                    {isSidebarOpen && (
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
+                        {item.label}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Resources Section */}
+            <div className="space-y-2 mt-8">
+              {isSidebarOpen && (
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
+                  RESOURCES
+                </h3>
+              )}
+              {resourcesNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
+                      ${isActive 
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
+                    {isSidebarOpen && (
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
+                        {item.label}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Other Section */}
+            <div className="space-y-2 mt-8">
+              {isSidebarOpen && (
+                <h3 className="text-xs font-semibold text-[#6B7280] dark:text-[#9CA3AF] uppercase tracking-wider mb-4">
+                  OTHERS
+                </h3>
+              )}
+              {otherNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group
+                      ${isActive 
+                        ? 'bg-[#1F2937] dark:bg-[#333333] text-white shadow-lg' 
+                        : 'text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#333333] hover:text-[#1F2937] dark:hover:text-white'}`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#6B7280] dark:text-[#9CA3AF] group-hover:text-[#1F2937] dark:group-hover:text-white'}`} />
+                    {isSidebarOpen && (
+                      <span className={`font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'group-hover:text-[#1F2937] dark:group-hover:text-white'}`}>
+                        {item.label}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
             </div>
           </nav>
 
-          <div className="p-4 border-t dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
+          {/* Bottom Section */}
+          <div className="p-6 border-t border-[#E5E7EB] dark:border-[#333333]">
+            <div className="flex items-center justify-between mb-6">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-xl hover:bg-[#F3F4F6] dark:hover:bg-[#333333] text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#1F2937] dark:hover:text-white transition-all duration-200"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
               </button>
               <button
                 onClick={handleSignOut}
                 disabled={signingOut}
-                className="flex items-center space-x-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                className="flex items-center space-x-2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#1F2937] dark:hover:text-white transition-colors duration-200 p-2 rounded-xl hover:bg-[#F3F4F6] dark:hover:bg-[#333333]"
+                title="Sign out"
               >
                 <FiLogOut className="w-5 h-5" />
-                {isSidebarOpen && <span>{signingOut ? 'Signing out...' : 'Sign out'}</span>}
+                {isSidebarOpen && !signingOut && <span className="text-sm">Sign out</span>}
+                {isSidebarOpen && signingOut && <span className="text-sm">Signing out...</span>}
               </button>
             </div>
-            {isSidebarOpen && (
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {user?.email}
+            {isSidebarOpen && user && (
+              <div className="bg-[#F8F9FA] dark:bg-[#333333] rounded-xl p-3 border border-[#E5E7EB] dark:border-[#555555]">
+                <div className="text-sm text-[#1F2937] dark:text-white font-medium truncate">
+                  {user.email}
+                </div>
+                <div className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">
+                  Account Settings
+                </div>
               </div>
             )}
           </div>
@@ -167,12 +359,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main 
         className={`min-h-screen transition-all duration-200 ${
-          isSidebarOpen ? 'lg:pl-72' : 'lg:pl-20'
+          isSidebarOpen ? 'lg:pl-[296px]' : 'lg:pl-[112px]'
         }`}
       >
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+
+
+        {/* Content */}
+        <div className="p-6 lg:p-8 max-w-7xl mx-auto lg:mr-4 lg:mt-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg dark:bg-red-900/20 dark:text-red-400">
+            <div className="mb-6 p-4 bg-[#F3F4F6] dark:bg-[#374151] border border-[#E5E7EB] dark:border-[#4B5563] rounded-xl text-[#6B7280] dark:text-[#9CA3AF]">
               {error}
             </div>
           )}
