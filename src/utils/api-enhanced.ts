@@ -361,8 +361,21 @@ async function updateInvoiceWithCorrections(invoiceId: string, corrections: any)
 
 async function sendNotifications(targets: string[], notification: any): Promise<void> {
   console.log('📧 Sending notifications to:', targets, notification);
-  // In production, this would integrate with email/SMS services
-  // For now, we'll just log the notification
+  // Import notification functions dynamically to avoid circular dependencies
+  try {
+    const { notifyApprovalRequired } = await import('@/utils/email-service');
+    const { getInvoiceWithDetails } = await import('@/utils/email-helpers');
+    
+    // If this is an approval notification, send proper emails
+    if (notification.type === 'approval_decision' && notification.workflowId) {
+      // This is handled by the approval workflow tools now
+      console.log('✅ Approval notifications handled by workflow tools');
+    } else {
+      console.log('📧 Notification logged - no specific handler for type:', notification.type);
+    }
+  } catch (error) {
+    console.error('❌ Failed to send notifications:', error);
+  }
 }
 
 async function getInvoiceStatistics(): Promise<any> {

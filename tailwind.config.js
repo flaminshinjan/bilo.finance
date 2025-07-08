@@ -10,6 +10,9 @@ module.exports = {
     extend: {
       colors: {
         primary: '#FBB03B',
+        card: 'rgb(var(--card))',
+        'card-foreground': 'rgb(var(--card-foreground))',
+        'muted-foreground': 'rgb(var(--muted-foreground))',
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FiUsers, FiDollarSign, FiFileText, FiSettings, FiLogOut, FiHome, FiBarChart, FiSun, FiMoon } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiFileText, FiSettings, FiLogOut, FiHome, FiBarChart, FiSun, FiMoon, FiMail } from 'react-icons/fi';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface CompanyAuthData {
@@ -58,6 +58,11 @@ export default function CompanyDashboardLayout({
       icon: FiDollarSign,
     },
     {
+      name: 'Inbox',
+      href: '/company/dashboard/inbox',
+      icon: FiMail,
+    },
+    {
       name: 'Employees',
       href: '/company/dashboard/employees',
       icon: FiUsers,
@@ -87,7 +92,7 @@ export default function CompanyDashboardLayout({
   }
 
   return (
-    <div className="h-screen bg-[#F8F9FA] dark:bg-[#0a0a0a] flex overflow-hidden">
+    <div className="h-screen bg-[#F8F9FA] dark:bg-black flex overflow-hidden">
       {/* Floating Sidebar */}
       <div className="fixed top-4 left-4 h-[calc(100vh-2rem)] w-64 bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border border-[#E5E7EB] dark:border-[#333333] flex flex-col z-30">
         {/* Logo */}

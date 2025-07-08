@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core';
 import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { createApprovalWorkflowTool, getPendingApprovalsTool, updateInvoiceStatusTool } from '../tools/supabase-operations';
+import { createApprovalWorkflowWithNotifications, processApprovalWithNotifications } from '../tools/approval-notifications';
 
 export const approvalWorkflowAgent = new Agent({
   name: 'Approval Workflow Agent',
@@ -39,6 +40,8 @@ Always provide clear reasoning for workflow decisions and ensure appropriate app
   model: anthropic('claude-sonnet-4-20250514'),
   tools: {
     createApprovalWorkflow: createApprovalWorkflowTool,
+    createApprovalWorkflowWithNotifications: createApprovalWorkflowWithNotifications,
+    processApprovalWithNotifications: processApprovalWithNotifications,
     getPendingApprovals: getPendingApprovalsTool,
     updateInvoiceStatus: updateInvoiceStatusTool,
   },

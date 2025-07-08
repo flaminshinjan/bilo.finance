@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { supabase } from '@/utils/supabase';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
+import { notifyInvoiceProcessed } from '@/utils/email-service';
+import { getUserWithCompany } from '@/utils/email-helpers';
 
 const processInvoiceStep = createStep({
   id: 'process-invoice',
@@ -179,6 +181,30 @@ const processInvoiceStep = createStep({
       if (error) {
         console.error('Database error:', error);
         throw error;
+      }
+      
+      // Send email notifications
+      try {
+        const userWithCompany = await getUserWithCompany(userId);
+        if (userWithCompany && userWithCompany.companies) {
+          await notifyInvoiceProcessed({
+            companyName: userWithCompany.companies.company_name,
+            companyEmail: userWithCompany.companies.email,
+            employeeName: userWithCompany.full_name,
+            employeeEmail: userWithCompany.email,
+            invoiceNumber: extractedData.invoiceNumber,
+            vendorName: extractedData.vendorName,
+            amount: extractedData.amount,
+            currency: extractedData.currency,
+            processingDate: new Date().toISOString(),
+          });
+          console.log('📧 Invoice processed notifications sent successfully');
+        } else {
+          console.warn('⚠️ Could not send email notifications - user or company data not found');
+        }
+      } catch (emailError) {
+        console.error('❌ Failed to send email notifications:', emailError);
+        // Don't fail the workflow if email fails
       }
       
       return {

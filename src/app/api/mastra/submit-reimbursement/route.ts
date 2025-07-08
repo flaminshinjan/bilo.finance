@@ -5,6 +5,8 @@ export async function POST(request: NextRequest) {
     console.log('Processing...');
 
     const body = await request.json();
+    console.log('📋 Received reimbursement request:', JSON.stringify(body, null, 2));
+    
     const { 
       invoiceId, 
       employeeId, 

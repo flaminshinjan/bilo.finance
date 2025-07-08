@@ -104,32 +104,54 @@ export default function CompanyReimbursementsPage() {
       setActionLoading(true);
       
       const response = await fetch('/api/company/reimbursements/action', {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           reimbursementId: selectedRequest.id,
-          action,
-          notes: actionNotes
+          action: action === 'approve' ? 'approved' : 'rejected', // Map frontend action to API action
+          comments: actionNotes,
+          approvedBy: companyAuth?.id || 'system' // Add the required approvedBy field
         }),
       });
 
       if (response.ok) {
-        const updatedRequest = await response.json();
+        const responseText = await response.text();
         
-        // Update local state
+        // Handle empty response
+        if (!responseText) {
+          throw new Error('Empty response from server');
+        }
+        
+        const updatedRequest = JSON.parse(responseText);
+        
+        // Update local state with the actual reimbursement data
         setRequests(prev => prev.map(req => 
-          req.id === selectedRequest.id ? updatedRequest : req
+          req.id === selectedRequest.id 
+            ? { ...req, status: action === 'approve' ? 'approved' : 'rejected', approved_at: new Date().toISOString() }
+            : req
         ));
         
         setShowModal(false);
         setSelectedRequest(null);
         setProcessingAction(null);
         setActionNotes('');
+        
+        // Show success message
+        alert(`✅ Reimbursement ${action} successfully!`);
       } else {
-        const errorData = await response.json();
-        alert(errorData.error || `Failed to ${action} request`);
+        const responseText = await response.text();
+        let errorMessage = `Failed to ${action} request`;
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = responseText || errorMessage;
+        }
+        
+        alert(errorMessage);
       }
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);

@@ -1,6 +1,8 @@
 import { Tool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { supabase } from '@/utils/supabase';
+import { notifyReimbursementSubmitted } from '@/utils/email-service';
+import { getUserWithCompany } from '@/utils/email-helpers';
 
 // Invoice schema for database operations
 const InvoiceSchema = z.object({
@@ -380,15 +382,24 @@ export const submitReimbursementTool = new Tool({
       console.log(`💰 Submitting reimbursement for invoice ${invoiceId}...`);
 
       // First, check if the invoice exists and get its details
+      console.log(`🔍 Looking for invoice with ID: ${invoiceId}`);
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .select('*')
         .eq('id', invoiceId)
         .single();
 
-      if (invoiceError || !invoice) {
+      if (invoiceError) {
+        console.error('❌ Invoice query error:', invoiceError);
+        throw new Error(`Invoice query failed: ${invoiceError.message}`);
+      }
+
+      if (!invoice) {
+        console.error('❌ Invoice not found in database');
         throw new Error(`Invoice not found: ${invoiceId}`);
       }
+
+      console.log(`✅ Found invoice: ${invoice.invoice_number} from ${invoice.vendor_name}`);
 
       // Check if reimbursement already exists for this user and invoice (by checking description)
       const { data: existingReimbursements, error: checkError } = await supabase
@@ -435,6 +446,30 @@ export const submitReimbursementTool = new Tool({
           updated_at: new Date().toISOString(),
         })
         .eq('id', invoiceId);
+
+      // Send email notifications
+      try {
+        const userWithCompany = await getUserWithCompany(employeeId);
+        if (userWithCompany && userWithCompany.companies) {
+          await notifyReimbursementSubmitted({
+            companyName: userWithCompany.companies.company_name,
+            companyEmail: userWithCompany.companies.email,
+            employeeName: userWithCompany.full_name,
+            employeeEmail: userWithCompany.email,
+            reimbursementId: reimbursement.id,
+            amount: reimbursementAmount,
+            currency: currency,
+            businessPurpose: businessPurpose,
+            submittedDate: new Date().toISOString(),
+          });
+          console.log('📧 Reimbursement submission notifications sent successfully');
+        } else {
+          console.warn('⚠️ Could not send email notifications - user or company data not found');
+        }
+      } catch (emailError) {
+        console.error('❌ Failed to send email notifications:', emailError);
+        // Don't fail the workflow if email fails
+      }
 
       return {
         success: true,
